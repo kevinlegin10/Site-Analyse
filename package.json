@@ -1,0 +1,19 @@
+{
+  "name": "kevin_yo3v8mo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "node-adodb": "^5.0.3",
+    "xlsx": "^0.18.5"
+  }
+}
