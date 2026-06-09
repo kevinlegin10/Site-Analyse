@@ -1,37 +1,45 @@
-{
-  "name": "react-example",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite --port=3000 --host=0.0.0.0",
-    "build": "vite build",
-    "start": "node server.js",
-    "preview": "vite preview",
-    "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@google/genai": "^2.4.0",
-    "@tailwindcss/vite": "^4.1.14",
-    "@vitejs/plugin-react": "^5.0.4",
-    "lucide-react": "^0.546.0",
-    "react": "^19.0.1",
-    "react-dom": "^19.0.1",
-    "motion": "^12.23.24",
-    "express": "^4.21.2",
-    "cors": "^2.8.5",
-    "dotenv": "^17.2.3",
-    "mongodb": "^6.10.0"
-  },
-  "devDependencies": {
-    "@types/node": "^22.14.0",
-    "@types/express": "^4.17.21",
-    "autoprefixer": "^10.4.21",
-    "esbuild": "^0.25.0",
-    "tailwindcss": "^4.1.14",
-    "tsx": "^4.21.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.3"
-  }
+import express from 'express';
+import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { MongoClient } from 'mongodb';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+const MONGO_URI = process.env.MONGO_URI;
+
+app.use(cors());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.static(path.join(__dirname, 'dist')));
+
+let dbClient;
+let database;
+
+async function connectDB() {
+    try {
+        dbClient = new MongoClient(MONGO_URI);
+        await dbClient.connect();
+        database = dbClient.db("DataPortal");
+        console.log("Connected to MongoDB");
+    } catch (err) {
+        console.error("MongoDB Connection Failed:", err);
+    }
 }
+connectDB();
+
+// API Routes here...
+
+// Serve Frontend
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
