@@ -1,0 +1,6 @@
+{
+  "name": "DataForge",
+  "description": "An enterprise-grade responsive data management dashboard for Excel and MongoDB records, with import tools, relational filters, and full CRUD modals.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
