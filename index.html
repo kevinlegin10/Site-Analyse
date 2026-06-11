@@ -1,14 +1,399 @@
-<!doctype html>
+]<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DataForge Dashboard</title>
+    <title>DataForge Enterprise Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
   </head>
-  <body>
-    <div id="root">
-      <!-- Your custom HTML dashboard layout or vanilla JS goes directly here -->
-      <h1>DataForge Dashboard Backend is Online</h1>
+  <body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col">
+
+    <header class="border-b border-slate-800 bg-slate-950 px-6 py-4 flex items-center justify-between shadow-md">
+      <div class="flex items-center gap-3">
+        <div class="bg-indigo-600 p-2 rounded-lg text-white shadow-lg shadow-indigo-500/30">
+          <i data-lucide="database" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight text-white">DataForge <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 ml-2">MongoDB Cloud</span></h1>
+          <p class="text-xs text-slate-400">Enterprise Data Control Panel</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <label for="profileSelect" class="text-sm font-medium text-slate-400">Database Profile:</label>
+        <select id="profileSelect" onchange="switchProfile()" class="bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 p-2.5 outline-none transition-all">
+          <option value="default">default</option>
+        </select>
+      </div>
+    </header>
+
+    <main class="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
+      
+      <div class="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-slate-950 p-4 rounded-xl border border-slate-800 shadow-sm">
+        <div class="flex items-center gap-2">
+          <div class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
+          <span class="text-sm text-slate-300 font-medium" id="tableStatus">Loading collections...</span>
+        </div>
+        <div class="flex flex-wrap gap-3 w-full sm:w-auto">
+          <button onclick="openModal('importModal')" class="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2.5 rounded-lg border border-slate-700 text-sm font-medium transition-all">
+            <i data-lucide="upload-cloud" class="w-4 h-4"></i> Bulk JSON Import
+          </button>
+          <button onclick="openAddRecordModal()" class="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium shadow-lg shadow-indigo-600/20 transition-all">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i> Add Smart Record
+          </button>
+        </div>
+      </div>
+
+      <div id="tablesContainer" class="space-y-8">
+        <div id="tableLoader" class="flex flex-col items-center justify-center py-20 bg-slate-950 rounded-xl border border-slate-800">
+          <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500 mb-4"></div>
+          <p class="text-sm text-slate-400">Querying active cluster collections...</p>
+        </div>
+      </div>
+    </main>
+
+    <div id="addRecordModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+      <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-xl shadow-2xl p-6 relative overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+          <div class="flex items-center gap-2">
+            <i data-lucide="list-plus" class="text-indigo-400 w-5 h-5"></i>
+            <h3 class="text-lg font-bold text-white">Add Smart Record</h3>
+          </div>
+          <button onclick="closeModal('addRecordModal')" class="text-slate-400 hover:text-white transition-colors">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <form id="addRecordForm" onsubmit="submitNewRecord(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Target Table Name</label>
+            <input type="text" id="modalTargetTable" required placeholder="e.g., Devices, Logistics, Users" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:ring-1 focus:ring-indigo-500 outline-none">
+          </div>
+          
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Record Title / Identity</label>
+            <input type="text" id="modalRecordName" required placeholder="Item Reference Description" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:ring-1 focus:ring-indigo-500 outline-none">
+          </div>
+
+          <div class="bg-slate-950 p-3.5 rounded-lg border border-slate-800 space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-1">Condition Trigger (X Value)</label>
+              <select id="conditionalTrigger" onchange="handleConditionChange()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white outline-none focus:border-indigo-500">
+                <option value="" disabled selected>Choose Classification Layer...</option>
+                <option value="Hardware">Hardware Node Architecture</option>
+                <option value="Software">Software Application Environment</option>
+                <option value="Infrastructure">Network & Database Infrastructure</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Available Resource Assignments</label>
+              <select id="conditionalOptions" disabled class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-slate-400 outline-none focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                <option value="">Select a condition first...</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="flex gap-3 justify-end pt-2">
+            <button type="button" onclick="closeModal('addRecordModal')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition-colors">Cancel</button>
+            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium shadow-lg shadow-indigo-600/20 transition-colors">Save To Profile</button>
+          </div>
+        </form>
+      </div>
     </div>
+
+    <div id="importModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+      <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-xl shadow-2xl p-6 relative animate-in fade-in zoom-in-95 duration-150">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+          <div class="flex items-center gap-2">
+            <i data-lucide="upload" class="text-indigo-400 w-5 h-5"></i>
+            <h3 class="text-lg font-bold text-white">Bulk Data Workspace Overwrite</h3>
+          </div>
+          <button onclick="closeModal('importModal')" class="text-slate-400 hover:text-white transition-colors">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <p class="text-xs text-slate-400 mb-3">Paste structured schema maps to completely set up arrays for multiple tables simultaneously.</p>
+        <textarea id="jsonImportArea" rows="10" placeholder='{\n  "Devices": [\n    { "Item": "ESP32 DevKit", "Status": "Active", "Location": "Lab A" }\n  ]\n}' class="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 font-mono text-xs text-emerald-400 focus:ring-1 focus:ring-indigo-500 outline-none resize-none"></textarea>
+        
+        <div class="flex gap-3 justify-end mt-4">
+          <button type="button" onclick="closeModal('importModal')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition-colors">Cancel</button>
+          <button onclick="submitBulkImport()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition-colors">Import & Map Docs</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let currentProfile = 'default';
+      let activeDatabaseStructure = {};
+
+      // Conditional Dropdown Configuration Object
+      const structuralConditionMap = {
+        'Hardware': ['ESP32-S3 Node', 'Raspberry Pi 5 Hub', 'Arduino GIGA R1', 'MQTT Sensor Core'],
+        'Software': ['Node.js API Route', 'Python Pandas Engine', 'React Context System', 'Express REST Service'],
+        'Infrastructure': ['MongoDB Atlas Cluster', 'Render Cloud Host', 'Tailwind CSS Grid Engine', 'Secure TLS Layer']
+      };
+
+      // Lifecycle Bootstrapping Setup
+      document.addEventListener("DOMContentLoaded", () => {
+        initializeIcons();
+        fetchAvailableProfiles();
+        loadActiveProfileRecords();
+      });
+
+      function initializeIcons() {
+        if (window.lucide) {
+          window.lucide.createIcons();
+        }
+      }
+
+      // Fetch dynamic tracking collections inside the target Database
+      async function fetchAvailableProfiles() {
+        try {
+          const res = await fetch('/api/profiles');
+          const data = await res.json();
+          const selector = document.getElementById('profileSelect');
+          selector.innerHTML = '';
+          data.profiles.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p;
+            opt.textContent = p;
+            if(p === currentProfile) opt.selected = true;
+            selector.appendChild(opt);
+          });
+        } catch(e) {
+          console.error("Failed collection inventory read context", e);
+        }
+      }
+
+      // Read Profile payload
+      async function loadActiveProfileRecords() {
+        const tableContainer = document.getElementById('tablesContainer');
+        const loader = document.getElementById('tableLoader');
+        if (loader) loader.style.display = 'flex';
+        
+        try {
+          const res = await fetch(`/api/data?profile=${currentProfile}`);
+          activeDatabaseStructure = await res.json();
+          renderDynamicDashboardGrid();
+        } catch (err) {
+          tableContainer.innerHTML = `<div class="p-4 bg-red-950/40 border border-red-800 rounded-lg text-red-200 text-sm">Failed to connect to cluster instance profile. Check connection syntax strings.</div>`;
+        }
+      }
+
+      function switchProfile() {
+        currentProfile = document.getElementById('profileSelect').value;
+        loadActiveProfileRecords();
+      }
+
+      // Maps database collections out of the parsed object dynamically to UI Grid layouts
+      function renderDynamicDashboardGrid() {
+        const container = document.getElementById('tablesContainer');
+        container.innerHTML = '';
+
+        const tableKeys = Object.keys(activeDatabaseStructure);
+        document.getElementById('tableStatus').textContent = tableKeys.length === 0 
+          ? `No collections indexed in profile: "${currentProfile}"` 
+          : `Active Collections Tracking Context: ${tableKeys.length}`;
+
+        if(tableKeys.length === 0) {
+          container.innerHTML = `
+            <div class="text-center py-16 bg-slate-950 rounded-xl border border-slate-800">
+              <i data-lucide="layers" class="w-12 h-12 text-slate-600 mx-auto mb-3"></i>
+              <h3 class="text-base font-semibold text-slate-300">Profile Data Layer Empty</h3>
+              <p class="text-sm text-slate-500 max-w-xs mx-auto mt-1">Add a smart record or run a bulk document dump to populate your live document schema views.</p>
+            </div>`;
+          initializeIcons();
+          return;
+        }
+
+        tableKeys.forEach(tableName => {
+          const tableRows = activeDatabaseStructure[tableName] || [];
+          if(tableRows.length === 0) return;
+
+          // Deduce explicit document keys to dynamically plot table headers
+          const schemaHeaders = Object.keys(tableRows[0]);
+
+          const section = document.createElement('section');
+          section.className = "bg-slate-950 border border-slate-800 rounded-xl shadow-sm overflow-hidden";
+          
+          let tableHtml = `
+            <div class="px-5 py-4 border-b border-slate-800 bg-slate-950/60 flex justify-between items-center">
+              <div class="flex items-center gap-2">
+                <span class="h-2 w-2 rounded-full bg-indigo-500"></span>
+                <h2 class="text-md font-bold tracking-wide text-white">${tableName}</h2>
+                <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">${tableRows.length} rows</span>
+              </div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse text-sm text-slate-300">
+                <thead>
+                  <tr class="border-b border-slate-800 bg-slate-900/40 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    ${schemaHeaders.map(h => `<th class="px-6 py-3.5">${h}</th>`).join('')}
+                    <th class="px-6 py-3.5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60">
+          `;
+
+          tableRows.forEach((row, rowIndex) => {
+            tableHtml += `<tr class="hover:bg-slate-900/30 transition-colors">`;
+            schemaHeaders.forEach(header => {
+              const value = row[header] !== undefined ? row[header] : '-';
+              tableHtml += `
+                <td class="px-6 py-3.5 font-normal">
+                  <input type="text" value="${escapeHtml(value)}" 
+                    onchange="updateCellInline('${tableName}', ${rowIndex}, '${header}', this.value)"
+                    class="bg-transparent border-b border-transparent hover:border-slate-700 focus:border-indigo-500 focus:bg-slate-900 px-1 py-0.5 rounded outline-none w-full transition-all text-slate-200 focus:text-white" />
+                </td>`;
+            });
+            tableHtml += `
+              <td class="px-6 py-3.5 text-right">
+                <button onclick="deleteRowContext('${tableName}', ${rowIndex})" class="text-slate-500 hover:text-rose-400 p-1 rounded transition-colors inline-flex items-center justify-center">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </td>
+            </tr>`;
+          });
+
+          tableHtml += `</tbody></table></div>`;
+          section.innerHTML = tableHtml;
+          container.appendChild(section);
+        });
+
+        initializeIcons();
+      }
+
+      // Conditional selection option assignment sequence logic
+      function handleConditionChange() {
+        const triggerValue = document.getElementById('conditionalTrigger').value;
+        const optionsDropdown = document.getElementById('conditionalOptions');
+        
+        optionsDropdown.innerHTML = '';
+        
+        if (structuralConditionMap[triggerValue]) {
+          optionsDropdown.disabled = false;
+          optionsDropdown.classList.remove('text-slate-400', 'cursor-not-allowed');
+          optionsDropdown.classList.add('text-white');
+          
+          structuralConditionMap[triggerValue].forEach(option => {
+            const element = document.createElement('option');
+            element.value = option;
+            element.textContent = option;
+            optionsDropdown.appendChild(element);
+          });
+        } else {
+          optionsDropdown.disabled = true;
+          optionsDropdown.innerHTML = '<option value="">Select a condition first...</option>';
+        }
+      }
+
+      // POST: Save inline table modifications back into MongoDB instance
+      async function updateCellInline(table, index, field, value) {
+        try {
+          const res = await fetch('/api/update-cell', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ profile: currentProfile, table, index, field, value })
+          });
+          if(!res.ok) alert("Error parsing database write parameter maps.");
+        } catch(e) { console.error("Pipeline failure updates", e); }
+      }
+
+      // POST: Add new element inside active schema tracking arrays
+      async function submitNewRecord(e) {
+        e.preventDefault();
+        const table = document.getElementById('modalTargetTable').value.trim();
+        const name = document.getElementById('modalRecordName').value.trim();
+        const condition = document.getElementById('conditionalTrigger').value;
+        const assignment = document.getElementById('conditionalOptions').value;
+
+        const rowData = {
+          "Reference ID": "REC-" + Math.floor(1000 + Math.random() * 9000),
+          "Identity Name": name,
+          "Layer Context": condition || "N/A",
+          "Assigned Allocation": assignment || "None",
+          "Timestamp": new Date().toLocaleTimeString()
+        };
+
+        try {
+          const res = await fetch('/api/add-row', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ profile: currentProfile, table, rowData })
+          });
+          if(res.ok) {
+            closeModal('addRecordModal');
+            document.getElementById('addRecordForm').reset();
+            handleConditionChange(); // reset dropdown states
+            loadActiveProfileRecords();
+          }
+        } catch(e) { alert("Pipeline execution block mapping aborted."); }
+      }
+
+      // POST: Remove structured objects from structural map indexes
+      async function deleteRowContext(table, index) {
+        if(!confirm("Purge selected record indexing safely out of current cluster?")) return;
+        try {
+          const res = await fetch('/api/delete-row', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ profile: currentProfile, table, index })
+          });
+          if(res.ok) loadActiveProfileRecords();
+        } catch(e) { console.error(e); }
+      }
+
+      // POST: Direct Overwrite Workspace Block Elements
+      async function submitBulkImport() {
+        const rawText = document.getElementById('jsonImportArea').value;
+        let parsed;
+        try {
+          parsed = JSON.parse(rawText);
+        } catch(e) {
+          alert("Invalid tracking parameters mapped. Supply verified JSON array structures.");
+          return;
+        }
+
+        try {
+          const res = await fetch('/api/upload-db', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ profile: currentProfile, dbData: parsed })
+          });
+          if(res.ok) {
+            closeModal('importModal');
+            document.getElementById('jsonImportArea').value = '';
+            fetchAvailableProfiles();
+            loadActiveProfileRecords();
+          }
+        } catch(e) { alert("Write verification streams collapsed."); }
+      }
+
+      // Utility Window Management Scripts
+      function openModal(id) {
+        const modal = document.getElementById(id);
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+
+      function openAddRecordModal() {
+        openModal('addRecordModal');
+        handleConditionChange();
+      }
+
+      function closeModal(id) {
+        const modal = document.getElementById(id);
+        modal.classList.remove('flex');
+        modal.classList.add('hidden');
+      }
+
+      function escapeHtml(str) {
+        if (typeof str !== 'string') return str;
+        return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+      }
+    </script>
   </body>
 </html>
