@@ -74,7 +74,12 @@
 
       <div class="flex-1 overflow-auto p-6 bg-slate-900/50">
         <div id="tableStatusHeader" class="mb-4 flex items-center justify-between">
-          <h2 id="currentTableName" class="text-xl font-bold text-white">No Table Selected</h2>
+          <div class="flex items-center gap-3">
+            <h2 id="currentTableName" class="text-xl font-bold text-white">No Table Selected</h2>
+            <button id="deleteTableBtn" onclick="deleteActiveTable()" class="hidden text-slate-500 hover:text-rose-500 bg-slate-900 hover:bg-rose-500/10 p-1.5 rounded-md transition-all border border-slate-800 hover:border-rose-500/30" title="Delete Entire Table">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
           <span id="recordCount" class="text-sm text-slate-400"></span>
         </div>
         
@@ -164,7 +169,6 @@
         } catch(e) { console.error("Profiles failed", e); }
       }
 
-      // NEW: Create a brand new database profile instantly
       function createNewProfile() {
         const name = prompt("Enter a name for the new Database Profile:");
         if (name && name.trim()) {
@@ -188,6 +192,7 @@
       async function loadActiveProfileRecords() {
         document.getElementById('tableLoader').style.display = 'flex';
         document.getElementById('tableContainer').classList.add('hidden');
+        document.getElementById('deleteTableBtn').classList.add('hidden');
         try {
           const res = await fetch(`/api/data?profile=${currentProfile}`);
           activeDatabaseStructure = await res.json();
@@ -284,10 +289,17 @@
 
       function renderTable() {
         const container = document.getElementById('tableContainer');
+        const deleteBtn = document.getElementById('deleteTableBtn');
         const query = document.getElementById('searchInput').value.toLowerCase();
         
-        if (!activeTable) { container.classList.add('hidden'); document.getElementById('recordCount').textContent = ""; return; }
+        if (!activeTable) { 
+          container.classList.add('hidden'); 
+          deleteBtn.classList.add('hidden');
+          document.getElementById('recordCount').textContent = ""; 
+          return; 
+        }
         
+        deleteBtn.classList.remove('hidden');
         const tableRows = activeDatabaseStructure[activeTable] || [];
         container.classList.remove('hidden');
 
@@ -367,6 +379,37 @@
         }
       }
 
+      // NEW: DELETE ENTIRE TABLE
+      async function deleteActiveTable() {
+        if (!activeTable) return;
+        if (!confirm(`WARNING: Are you absolutely sure you want to permanently delete the entire "${activeTable}" table and all its data?`)) return;
+
+        // Remove from our local tracker
+        delete activeDatabaseStructure[activeTable];
+
+        // Send the updated tracker back to MongoDB, effectively erasing the table
+        try {
+          const res = await fetch('/api/upload-db', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ profile: currentProfile, dbData: activeDatabaseStructure })
+          });
+
+          if (res.ok) {
+            // Pick a new table to view if available, otherwise clear the screen
+            const remainingTables = Object.keys(activeDatabaseStructure);
+            if (remainingTables.length > 0) {
+              selectTable(remainingTables[0]);
+            } else {
+              activeTable = null;
+              document.getElementById('currentTableName').textContent = "No Table Selected";
+              renderSidebar();
+              renderTable();
+            }
+          }
+        } catch (e) { alert("Failed to delete table from the database."); }
+      }
+
       // ADD RECORD LOGIC
       function openAddRecordModal() {
         if(!activeTable) return alert("Select a table from the sidebar first.");
@@ -412,7 +455,7 @@
         }
       }
 
-      // NEW: CUSTOM SCHEMA BUILDER LOGIC
+      // CUSTOM SCHEMA BUILDER LOGIC
       function openTableBuilderModal() {
         const area = document.getElementById('builderColumnArea');
         area.innerHTML = '';
@@ -455,7 +498,37 @@
         const checkboxes = document.querySelectorAll('.builder-col-checkbox:checked');
         const selectedCols = Array.from(checkboxes).map(cb => cb.value);
         
-        const uniqueCols = [...new Set(selectedCols)]; // Remove duplicates if same column name exists in multiple tables
+        const uniqueCols = [...new Set(selectedCols)]; 
         if (uniqueCols.length === 0) return alert("Please select at least one column.");
 
-        // Create an empty
+        const dummyRow = {};
+        uniqueCols.forEach(col => dummyRow[col] = "—"); 
+
+        const res = await fetch('/api/add-row', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ profile: currentProfile, table: name, rowData: dummyRow })
+        });
+
+        if(res.ok) {
+          if(!activeDatabaseStructure[name]) activeDatabaseStructure[name] = [];
+          activeDatabaseStructure[name].unshift(dummyRow);
+          
+          document.getElementById('newSchemaName').value = '';
+          closeModal('tableBuilderModal');
+          selectTable(name); 
+        }
+      }
+
+      function openModal(id) { 
+        document.getElementById(id).classList.remove('hidden'); 
+        document.getElementById(id).classList.add('flex'); 
+      }
+      function closeModal(id) { 
+        document.getElementById(id).classList.remove('flex'); 
+        document.getElementById(id).classList.add('hidden'); 
+      }
+      function escapeHtml(str) { return typeof str !== 'string' ? str : str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+    </script>
+  </body>
+</html>
