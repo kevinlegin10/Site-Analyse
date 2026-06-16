@@ -23,7 +23,12 @@
       </div>
 
       <div class="p-4 border-b border-slate-800">
-        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Active Profile</label>
+        <div class="flex justify-between items-center mb-2">
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Active Profile</label>
+          <button onclick="createNewProfile()" class="text-indigo-400 hover:text-indigo-300 text-xs font-bold flex items-center gap-1 transition-colors">
+            <i data-lucide="plus" class="w-3 h-3"></i> New
+          </button>
+        </div>
         <select id="profileSelect" onchange="switchProfile()" class="w-full bg-slate-950 border border-slate-700 text-slate-200 text-sm rounded-lg focus:ring-indigo-500 p-2 outline-none">
           <option value="default">default</option>
         </select>
@@ -35,12 +40,17 @@
           <li class="text-slate-500 text-sm italic px-2">Loading tables...</li>
         </ul>
       </div>
+
+      <div class="p-4 border-t border-slate-800 bg-slate-900/50">
+        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Schema Builder</label>
+        <button onclick="openTableBuilderModal()" class="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2.5 rounded-lg text-sm font-medium transition-all shadow-sm">
+          <i data-lucide="table-properties" class="w-4 h-4"></i> Construct New Table
+        </button>
+      </div>
     </aside>
 
     <main class="flex-1 flex flex-col h-full overflow-hidden relative">
-      
       <header class="bg-slate-950 border-b border-slate-800 p-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 z-10">
-        
         <div class="relative w-full sm:w-96">
           <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
           <input type="text" id="searchInput" onkeyup="renderTable()" placeholder="Search active table..." class="w-full bg-slate-900 border border-slate-700 text-sm text-white rounded-lg pl-10 pr-4 py-2.5 focus:ring-1 focus:ring-indigo-500 outline-none transition-all">
@@ -51,7 +61,7 @@
             <button class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2.5 rounded-lg border border-slate-700 text-sm font-medium transition-all">
               <i data-lucide="columns" class="w-4 h-4"></i> Columns
             </button>
-            <div class="absolute right-0 mt-2 w-48 bg-slate-900 border border-slate-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 p-2" id="columnToggleContainer">
+            <div class="absolute right-0 mt-2 w-48 bg-slate-900 border border-slate-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 p-2 max-h-64 overflow-y-auto" id="columnToggleContainer">
               <p class="text-xs text-slate-400 italic px-2 py-1">Select a table first</p>
             </div>
           </div>
@@ -95,11 +105,41 @@
       </div>
     </div>
 
+    <div id="tableBuilderModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+      <div class="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-xl shadow-2xl p-6 relative flex flex-col max-h-[90vh]">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4 shrink-0">
+          <div>
+            <h3 class="text-lg font-bold text-white flex items-center gap-2"><i data-lucide="table-properties" class="w-5 h-5 text-indigo-400"></i> Construct Custom Table</h3>
+            <p class="text-xs text-slate-400 mt-1">Select columns from existing tables to build a new view schema.</p>
+          </div>
+          <button onclick="closeModal('tableBuilderModal')" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        
+        <div class="space-y-4 overflow-y-auto pr-2 flex-1">
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">New Table Name</label>
+            <input type="text" id="newSchemaName" required placeholder="e.g., Unified Analytics, Driver Trucks" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:ring-1 focus:ring-indigo-500 outline-none">
+          </div>
+          
+          <div class="bg-slate-950 border border-slate-800 rounded-lg p-4">
+            <label class="block text-xs font-semibold uppercase tracking-wider text-indigo-400 mb-3">Available Columns</label>
+            <div id="builderColumnArea" class="space-y-4">
+              </div>
+          </div>
+        </div>
+
+        <div class="flex gap-3 justify-end pt-4 border-t border-slate-800 mt-4 shrink-0">
+          <button type="button" onclick="closeModal('tableBuilderModal')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium">Cancel</button>
+          <button onclick="submitNewTableSchema()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium shadow-lg shadow-indigo-600/20">Generate Table</button>
+        </div>
+      </div>
+    </div>
+
     <script>
       let currentProfile = 'default';
       let activeDatabaseStructure = {};
       let activeTable = null;
-      let hiddenColumns = {}; // Format: { tableName: ['col1', 'col2'] }
+      let hiddenColumns = {};
 
       document.addEventListener("DOMContentLoaded", () => {
         initializeIcons();
@@ -124,6 +164,27 @@
         } catch(e) { console.error("Profiles failed", e); }
       }
 
+      // NEW: Create a brand new database profile instantly
+      function createNewProfile() {
+        const name = prompt("Enter a name for the new Database Profile:");
+        if (name && name.trim()) {
+          currentProfile = name.trim();
+          activeDatabaseStructure = {};
+          activeTable = null;
+          
+          const sel = document.getElementById('profileSelect');
+          if (![...sel.options].some(o => o.value === currentProfile)) {
+            const opt = document.createElement('option');
+            opt.value = currentProfile; opt.textContent = currentProfile;
+            sel.appendChild(opt);
+          }
+          sel.value = currentProfile;
+          
+          renderSidebar();
+          renderTable();
+        }
+      }
+
       async function loadActiveProfileRecords() {
         document.getElementById('tableLoader').style.display = 'flex';
         document.getElementById('tableContainer').classList.add('hidden');
@@ -134,7 +195,6 @@
           document.getElementById('tableLoader').style.display = 'none';
           renderSidebar();
           
-          // Auto-select first table if none selected
           const tables = Object.keys(activeDatabaseStructure);
           if(tables.length > 0 && !activeTable) selectTable(tables[0]);
           else if (activeTable) renderTable();
@@ -148,14 +208,13 @@
         loadActiveProfileRecords();
       }
 
-      // Render Sidebar Navigation
       function renderSidebar() {
         const nav = document.getElementById('sidebarNav');
         nav.innerHTML = '';
         const tables = Object.keys(activeDatabaseStructure);
         
         if (tables.length === 0) {
-          nav.innerHTML = '<li class="text-slate-500 text-xs px-2">No tables found.</li>';
+          nav.innerHTML = '<li class="text-slate-500 text-xs px-2">No tables found. Create one!</li>';
           return;
         }
 
@@ -188,12 +247,11 @@
       function selectTable(tableName) {
         activeTable = tableName;
         document.getElementById('currentTableName').textContent = tableName;
-        renderSidebar(); // Update active state
+        renderSidebar(); 
         renderColumnPicker();
         renderTable();
       }
 
-      // Populate Column Visibility Dropdown
       function renderColumnPicker() {
         const container = document.getElementById('columnToggleContainer');
         container.innerHTML = '';
@@ -219,17 +277,16 @@
       function toggleColumn(header) {
         if(!hiddenColumns[activeTable]) hiddenColumns[activeTable] = [];
         const index = hiddenColumns[activeTable].indexOf(header);
-        if (index > -1) hiddenColumns[activeTable].splice(index, 1); // Show
-        else hiddenColumns[activeTable].push(header); // Hide
+        if (index > -1) hiddenColumns[activeTable].splice(index, 1); 
+        else hiddenColumns[activeTable].push(header); 
         renderTable();
       }
 
-      // Render the Main Data Grid
       function renderTable() {
         const container = document.getElementById('tableContainer');
         const query = document.getElementById('searchInput').value.toLowerCase();
         
-        if (!activeTable) { container.classList.add('hidden'); return; }
+        if (!activeTable) { container.classList.add('hidden'); document.getElementById('recordCount').textContent = ""; return; }
         
         const tableRows = activeDatabaseStructure[activeTable] || [];
         container.classList.remove('hidden');
@@ -243,7 +300,6 @@
         const allHeaders = Object.keys(tableRows[0]);
         const visibleHeaders = allHeaders.filter(h => !(hiddenColumns[activeTable] || []).includes(h));
 
-        // Filter Rows via Search
         const filteredRows = tableRows.map((row, idx) => ({ row, idx })).filter(({ row }) => {
           if (!query) return true;
           return visibleHeaders.some(h => String(row[h] || '').toLowerCase().includes(query));
@@ -311,6 +367,7 @@
         }
       }
 
+      // ADD RECORD LOGIC
       function openAddRecordModal() {
         if(!activeTable) return alert("Select a table from the sidebar first.");
         document.getElementById('modalTitle').textContent = `Add to ${activeTable}`;
@@ -328,8 +385,7 @@
           `;
         });
         
-        document.getElementById('addRecordModal').classList.remove('hidden');
-        document.getElementById('addRecordModal').classList.add('flex');
+        openModal('addRecordModal');
       }
 
       async function submitNewRecord(e) {
@@ -356,11 +412,50 @@
         }
       }
 
-      function closeModal(id) { 
-        document.getElementById(id).classList.remove('flex'); 
-        document.getElementById(id).classList.add('hidden'); 
+      // NEW: CUSTOM SCHEMA BUILDER LOGIC
+      function openTableBuilderModal() {
+        const area = document.getElementById('builderColumnArea');
+        area.innerHTML = '';
+        const tables = Object.keys(activeDatabaseStructure);
+
+        if (tables.length === 0) {
+          area.innerHTML = '<p class="text-sm text-slate-400 italic">No existing tables to draw columns from. Add data first.</p>';
+        } else {
+          tables.forEach(tableName => {
+            const headers = Object.keys(activeDatabaseStructure[tableName][0] || {});
+            if (headers.length > 0) {
+              let html = `
+                <div class="mb-4">
+                  <h4 class="text-sm font-semibold text-slate-300 mb-2 border-b border-slate-800 pb-1 flex items-center gap-2">
+                    <i data-lucide="${getIconForTable(tableName)}" class="w-4 h-4 text-slate-500"></i> ${tableName}
+                  </h4>
+                  <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              `;
+              headers.forEach(header => {
+                html += `
+                  <label class="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-200 cursor-pointer p-1.5 hover:bg-slate-900 rounded transition-colors">
+                    <input type="checkbox" value="${header}" class="builder-col-checkbox rounded border-slate-700 bg-slate-950 text-indigo-500 focus:ring-indigo-500">
+                    <span class="truncate">${header}</span>
+                  </label>
+                `;
+              });
+              html += `</div></div>`;
+              area.innerHTML += html;
+            }
+          });
+        }
+        initializeIcons();
+        openModal('tableBuilderModal');
       }
-      function escapeHtml(str) { return typeof str !== 'string' ? str : str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
-    </script>
-  </body>
-</html>
+
+      async function submitNewTableSchema() {
+        const name = document.getElementById('newSchemaName').value.trim();
+        if (!name) return alert("Please enter a name for the new table.");
+
+        const checkboxes = document.querySelectorAll('.builder-col-checkbox:checked');
+        const selectedCols = Array.from(checkboxes).map(cb => cb.value);
+        
+        const uniqueCols = [...new Set(selectedCols)]; // Remove duplicates if same column name exists in multiple tables
+        if (uniqueCols.length === 0) return alert("Please select at least one column.");
+
+        // Create an empty
