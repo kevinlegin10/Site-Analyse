@@ -51,6 +51,8 @@
             <ul class="nav nav-pills flex-column mb-auto flex-grow-1 overflow-auto" id="sidebarNav"></ul>
 
             <div class="mt-3 pt-3 border-top border-secondary border-opacity-50">
+                <button onclick="openAllocateModal()" class="btn btn-primary w-100 mb-2 shadow-sm"><i class="fa-solid fa-link me-2"></i> Allocate Assets</button>
+                
                 <button onclick="openTableBuilderModal()" class="btn btn-outline-light w-100 mb-2"><i class="fa-solid fa-table-cells me-2"></i> Construct New Table</button>
                 <button onclick="openImportModal()" class="btn btn-outline-success w-100"><i class="fa-solid fa-file-excel me-2"></i> Import Excel / JSON</button>
             </div>
@@ -111,10 +113,47 @@
     </div>
 </div>
 
-<div class="modal fade" id="addRecordModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="allocateModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-link me-2"></i>Allocate Fleet Assets</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form onsubmit="submitAllocation(event)">
+                <div class="modal-body bg-light">
+                    <div class="alert alert-info border-0 py-2 small">
+                        <i class="fa-solid fa-circle-info me-2"></i>Selecting assets below will link them in your Assignment table and automatically update their Status fields to <strong>Assigned</strong>.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-muted small text-uppercase">Select Driver</label>
+                        <select id="allocDriver" class="form-select shadow-sm" required></select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-muted small text-uppercase">Select Truck</label>
+                        <select id="allocTruck" class="form-select shadow-sm" required></select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-muted small text-uppercase">Select Trailer (Optional)</label>
+                        <select id="allocTrailer" class="form-select shadow-sm"></select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check-double me-2"></i>Confirm Allocation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addRecordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-dark text-white">
                 <h5 class="modal-title fw-bold" id="modalTitle"><i class="fa-solid fa-plus-circle me-2"></i>Add Record</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
@@ -166,9 +205,7 @@
                     <p class="text-muted small">We will automatically read all the sheets/tabs in your Excel file and create tables for them.</p>
                     <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" class="form-control mt-2" onchange="handleExcelUpload(event)">
                 </div>
-
                 <div class="text-center text-muted mb-3 fw-bold">- OR -</div>
-
                 <label class="form-label fw-bold text-muted small text-uppercase">Paste JSON Data Manually</label>
                 <textarea id="jsonImportArea" class="form-control font-monospace bg-dark text-success" rows="6" placeholder="Parsed Excel data will appear here to review, or you can paste JSON..."></textarea>
             </div>
@@ -187,12 +224,13 @@
     let activeDatabaseStructure = {};
     let activeTable = 'dashboard';
     let hiddenColumns = {};
-    let addModalInstance, builderModalInstance, importModalInstance;
+    let addModalInstance, builderModalInstance, importModalInstance, allocateModalInstance;
 
     document.addEventListener("DOMContentLoaded", () => {
         addModalInstance = new bootstrap.Modal(document.getElementById('addRecordModal'));
         builderModalInstance = new bootstrap.Modal(document.getElementById('tableBuilderModal'));
         importModalInstance = new bootstrap.Modal(document.getElementById('importModal'));
+        allocateModalInstance = new bootstrap.Modal(document.getElementById('allocateModal')); // NEW
         
         fetchAvailableProfiles();
         updateVisibilityState();
@@ -395,7 +433,11 @@
             const tr = document.createElement('tr');
             let html = '';
             visibleHeaders.forEach(header => {
-                html += `<td><input type="text" value="${escapeHtml(String(row[header] !== undefined ? row[header] : ''))}" onchange="updateCellInline('${activeTable}', ${idx}, '${header}', this.value)" class="inline-input" /></td>`;
+                // Highlight row cell in green slightly if status is assigned
+                const isAssigned = String(row[header]).toLowerCase() === 'assigned';
+                const colorClass = isAssigned ? 'text-success fw-bold' : '';
+                
+                html += `<td><input type="text" value="${escapeHtml(String(row[header] !== undefined ? row[header] : ''))}" onchange="updateCellInline('${activeTable}', ${idx}, '${header}', this.value)" class="inline-input ${colorClass}" /></td>`;
             });
             html += `<td class="text-end"><button onclick="deleteRowContext('${activeTable}', ${idx})" class="btn btn-sm btn-outline-danger border-0"><i class="fa-solid fa-trash"></i></button></td>`;
             tr.innerHTML = html;
@@ -444,6 +486,115 @@
         }
     }
 
+    // --- NEW: ASSET ALLOCATION LOGIC ---
+    function openAllocateModal() {
+        if(!currentProfile || Object.keys(activeDatabaseStructure).length === 0) return alert("No data available to allocate. Import Excel data first.");
+        
+        const tables = Object.keys(activeDatabaseStructure);
+        const driverTable = tables.find(t => t.toLowerCase().includes('driver'));
+        const truckTable = tables.find(t => t.toLowerCase().includes('truck'));
+        const trailerTable = tables.find(t => t.toLowerCase().includes('trailer'));
+
+        populateSelect('allocDriver', driverTable, 'Driver ID', 'Employee Name');
+        populateSelect('allocTruck', truckTable, 'Truck No.', 'Plate No.');
+        populateSelect('allocTrailer', trailerTable, 'Dumper', 'Asset Type'); 
+        
+        allocateModalInstance.show();
+    }
+
+    function populateSelect(selectId, tableName, idColFallback, descColFallback) {
+        const select = document.getElementById(selectId);
+        select.innerHTML = '<option value="">-- Select or Skip --</option>';
+        if(!tableName || !activeDatabaseStructure[tableName]) return;
+        
+        const rows = activeDatabaseStructure[tableName];
+        if(rows.length === 0) return;
+        
+        const headers = Object.keys(rows[0]);
+        const idCol = headers.find(h => h.includes(idColFallback)) || headers[0];
+        const descCol = headers.find(h => h.includes(descColFallback)) || headers[1] || headers[0];
+        const statusCol = headers.find(h => h.toLowerCase() === 'status');
+
+        rows.forEach((row, idx) => {
+            const statusVal = statusCol && row[statusCol] ? String(row[statusCol]) : '';
+            const isAssigned = statusVal.toLowerCase() === 'assigned';
+            
+            const option = document.createElement('option');
+            option.value = JSON.stringify({ table: tableName, index: idx, idVal: row[idCol], nameVal: row[descCol] });
+            option.textContent = `${row[idCol]} - ${row[descCol]} ${statusVal ? `[${statusVal}]` : ''}`;
+            
+            if (isAssigned) {
+                option.disabled = true;
+                option.textContent += ' (Unavailable)';
+            }
+            select.appendChild(option);
+        });
+    }
+
+    async function submitAllocation(e) {
+        e.preventDefault();
+        
+        const dVal = document.getElementById('allocDriver').value;
+        const tVal = document.getElementById('allocTruck').value;
+        const trVal = document.getElementById('allocTrailer').value;
+
+        const driverData = dVal ? JSON.parse(dVal) : null;
+        const truckData = tVal ? JSON.parse(tVal) : null;
+        const trailerData = trVal ? JSON.parse(trVal) : null;
+        
+        if(!driverData || !truckData) return alert("You must select at least a Driver and a Truck.");
+
+        const updates = [];
+        
+        // Helper to change status to "Assigned"
+        const queueStatusUpdate = (item) => {
+            if(!item) return;
+            const row = activeDatabaseStructure[item.table][item.index];
+            let statusCol = Object.keys(row).find(h => h.toLowerCase() === 'status');
+            if(!statusCol) statusCol = 'Status'; // Create the column if missing
+            
+            updates.push(fetch('/api/update-cell', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ profile: currentProfile, table: item.table, index: item.index, field: statusCol, value: 'Assigned' })
+            }));
+            
+            activeDatabaseStructure[item.table][item.index][statusCol] = 'Assigned';
+        };
+
+        queueStatusUpdate(driverData);
+        queueStatusUpdate(truckData);
+        queueStatusUpdate(trailerData);
+
+        // Create log record
+        let assignTable = Object.keys(activeDatabaseStructure).find(t => t.toLowerCase().includes('assign')) || 'Assignment List';
+        const rowData = {
+            "Assignment Date": new Date().toLocaleDateString(),
+            "Truck No.": truckData.idVal,
+            "Driver ID": driverData.idVal,
+            "Employee Name": driverData.nameVal,
+            "Trailer": trailerData ? trailerData.idVal : "N/A"
+        };
+
+        updates.push(fetch('/api/add-row', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ profile: currentProfile, table: assignTable, rowData })
+        }));
+
+        try {
+            await Promise.all(updates);
+            if(!activeDatabaseStructure[assignTable]) activeDatabaseStructure[assignTable] = [];
+            activeDatabaseStructure[assignTable].unshift(rowData);
+            
+            allocateModalInstance.hide();
+            renderSidebar();
+            if(activeTable === assignTable || activeTable === 'dashboard') { selectTable(activeTable); }
+            alert("Assets successfully linked! Statuses updated to 'Assigned'.");
+        } catch (err) { alert("Failed to complete allocation process."); }
+    }
+
+    // --- SCHEMA BUILDER ---
     function openTableBuilderModal() {
         const area = document.getElementById('builderColumnArea');
         area.innerHTML = '';
@@ -480,7 +631,7 @@
         }
     }
 
-    // --- NEW: SHEETJS EXCEL PARSER ---
+    // --- SHEETJS EXCEL PARSER ---
     function openImportModal() {
         if (!currentProfile) return alert("Please create or select an Active Database Profile first!");
         document.getElementById('jsonImportArea').value = '';
@@ -496,21 +647,16 @@
         reader.onload = (e) => {
             try {
                 const data = new Uint8Array(e.target.result);
-                // Read the workbook using SheetJS
                 const workbook = XLSX.read(data, { type: 'array' });
-                
                 let parsedDatabase = {};
 
-                // Loop through every tab/sheet in the uploaded Excel file
                 workbook.SheetNames.forEach(sheetName => {
-                    // Convert sheet rows to JSON objects
                     const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: "" });
                     if (sheetData.length > 0) {
                         parsedDatabase[sheetName] = sheetData;
                     }
                 });
 
-                // Display the parsed JSON in the textarea for the user to review
                 document.getElementById('jsonImportArea').value = JSON.stringify(parsedDatabase, null, 2);
                 alert(`Successfully parsed ${Object.keys(parsedDatabase).length} tables from the Excel file! Click 'Overwrite & Save' to finalize.`);
             } catch (err) {
