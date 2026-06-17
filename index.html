@@ -6,6 +6,8 @@
     <title>Dynamic Fleet Management Portal</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    
     <style>
         body { background-color: #f8f9fa; font-family: system-ui, -apple-system, sans-serif; height: 100vh; overflow: hidden; }
         .sidebar { background-color: #212529; min-height: 100vh; color: white; display: flex; flex-direction: column; }
@@ -17,7 +19,6 @@
         .page-section { display: none; height: 100%; overflow-y: auto; padding-bottom: 2rem; }
         .page-section.active { display: block; }
         
-        /* Dynamic table input styling */
         .inline-input { background: transparent; border: 1px solid transparent; width: 100%; padding: 4px; border-radius: 4px; transition: all 0.2s;}
         .inline-input:focus { background: white; border-color: #0d6efd; outline: none; box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25); }
         
@@ -47,12 +48,11 @@
 
             <hr class="text-secondary mt-0">
 
-            <ul class="nav nav-pills flex-column mb-auto flex-grow-1 overflow-auto" id="sidebarNav">
-                </ul>
+            <ul class="nav nav-pills flex-column mb-auto flex-grow-1 overflow-auto" id="sidebarNav"></ul>
 
             <div class="mt-3 pt-3 border-top border-secondary border-opacity-50">
                 <button onclick="openTableBuilderModal()" class="btn btn-outline-light w-100 mb-2"><i class="fa-solid fa-table-cells me-2"></i> Construct New Table</button>
-                <button onclick="openImportModal()" class="btn btn-outline-success w-100"><i class="fa-solid fa-file-import me-2"></i> Import JSON Data</button>
+                <button onclick="openImportModal()" class="btn btn-outline-success w-100"><i class="fa-solid fa-file-excel me-2"></i> Import Excel / JSON</button>
             </div>
         </nav>
 
@@ -86,11 +86,8 @@
                         </div>
                         
                         <div class="dropdown">
-                            <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
-                                <i class="fa-solid fa-columns"></i>
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end shadow p-2" id="columnToggleContainer" style="min-width: 200px; max-height: 300px; overflow-y: auto;">
-                                </ul>
+                            <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside"><i class="fa-solid fa-columns"></i></button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow p-2" id="columnToggleContainer" style="min-width: 200px; max-height: 300px; overflow-y: auto;"></ul>
                         </div>
 
                         <button onclick="openAddRecordModal()" class="btn btn-primary shadow-sm"><i class="fa-solid fa-plus me-1"></i> Add Record</button>
@@ -104,10 +101,8 @@
                 <div class="card shadow-sm border-0">
                     <div class="table-responsive">
                         <table class="table table-hover table-striped align-middle mb-0 m-0">
-                            <thead class="table-dark" id="dynamic-table-head">
-                                </thead>
-                            <tbody id="dynamic-table-body" class="bg-white">
-                                </tbody>
+                            <thead class="table-dark" id="dynamic-table-head"></thead>
+                            <tbody id="dynamic-table-body" class="bg-white"></tbody>
                         </table>
                     </div>
                 </div>
@@ -124,11 +119,10 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form id="addRecordForm" onsubmit="submitNewRecord(event)">
-                <div class="modal-body" id="dynamicFormFields" style="max-height: 60vh; overflow-y: auto;">
-                    </div>
+                <div class="modal-body" id="dynamicFormFields" style="max-height: 60vh; overflow-y: auto;"></div>
                 <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success"><i class="fa-solid fa-save me-2"></i>Save Assignment</button>
+                    <button type="submit" class="btn btn-success"><i class="fa-solid fa-save me-2"></i>Save</button>
                 </div>
             </form>
         </div>
@@ -143,20 +137,16 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <p class="text-muted mb-4">Build a new relational table by selecting columns from your existing datasets.</p>
-                
                 <div class="mb-4">
                     <label class="form-label fw-bold">New Table Name</label>
-                    <input type="text" id="newSchemaName" class="form-control form-control-lg" placeholder="e.g., Active Allocations, Maintenance Log" required>
+                    <input type="text" id="newSchemaName" class="form-control form-control-lg" placeholder="e.g., Active Allocations" required>
                 </div>
-                
                 <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">Available Database Columns</h6>
-                <div id="builderColumnArea" class="row g-3">
-                    </div>
+                <div id="builderColumnArea" class="row g-3"></div>
             </div>
             <div class="modal-footer bg-light">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button onclick="submitNewTableSchema()" class="btn btn-primary"><i class="fa-solid fa-wand-magic-sparkles me-2"></i>Generate Table</button>
+                <button onclick="submitNewTableSchema()" class="btn btn-primary"><i class="fa-solid fa-wand-magic-sparkles me-2"></i>Generate</button>
             </div>
         </div>
     </div>
@@ -166,20 +156,25 @@
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header bg-success text-white">
-                <h5 class="modal-title fw-bold"><i class="fa-solid fa-file-import me-2"></i>Bulk Data Import</h5>
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-file-excel me-2"></i>Bulk Import Data</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <p class="text-muted small">Paste your structured JSON data here. This will completely overwrite the current Active Profile with the new tables and data.</p>
-                <textarea id="jsonImportArea" class="form-control font-monospace bg-dark text-success" rows="12" placeholder='{
-  "Trucks": [
-    { "Truck No": "A1002", "Brand": "Volvo" }
-  ]
-}'></textarea>
+                <div class="mb-4 p-4 border border-success border-2 rounded bg-light text-center border-dashed">
+                    <i class="fa-solid fa-file-excel fa-3x text-success mb-3"></i>
+                    <h6 class="fw-bold">Upload an Excel File (.xlsx, .csv)</h6>
+                    <p class="text-muted small">We will automatically read all the sheets/tabs in your Excel file and create tables for them.</p>
+                    <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" class="form-control mt-2" onchange="handleExcelUpload(event)">
+                </div>
+
+                <div class="text-center text-muted mb-3 fw-bold">- OR -</div>
+
+                <label class="form-label fw-bold text-muted small text-uppercase">Paste JSON Data Manually</label>
+                <textarea id="jsonImportArea" class="form-control font-monospace bg-dark text-success" rows="6" placeholder="Parsed Excel data will appear here to review, or you can paste JSON..."></textarea>
             </div>
             <div class="modal-footer bg-light">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button onclick="submitBulkImport()" class="btn btn-success"><i class="fa-solid fa-upload me-2"></i>Upload to Database</button>
+                <button onclick="submitBulkImport()" class="btn btn-success"><i class="fa-solid fa-upload me-2"></i>Overwrite & Save to Profile</button>
             </div>
         </div>
     </div>
@@ -188,12 +183,10 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-    let currentProfile = ''; // Empty by default to trigger the empty state screen
+    let currentProfile = ''; 
     let activeDatabaseStructure = {};
     let activeTable = 'dashboard';
     let hiddenColumns = {};
-
-    // Bootstrap Modal Instances
     let addModalInstance, builderModalInstance, importModalInstance;
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -205,7 +198,6 @@
         updateVisibilityState();
     });
 
-    // --- State & UI Managers ---
     function updateVisibilityState() {
         if (!currentProfile) {
             document.getElementById('empty-state-overlay').style.display = 'flex';
@@ -239,7 +231,7 @@
     }
 
     function createNewProfile() {
-        const name = prompt("Enter a name for the new Database Workspace (e.g., Fleet_2026):");
+        const name = prompt("Enter a name for the new Database Workspace:");
         if (name && name.trim()) {
             currentProfile = name.trim();
             activeDatabaseStructure = {};
@@ -263,15 +255,11 @@
         try {
             const res = await fetch(`/api/data?profile=${currentProfile}`);
             activeDatabaseStructure = await res.json();
-            
             renderSidebar();
-            
             if(activeTable === 'dashboard' || !activeDatabaseStructure[activeTable]) {
                 activeTable = 'dashboard';
                 renderDashboard();
-            } else {
-                renderTable();
-            }
+            } else { renderTable(); }
             updateVisibilityState();
         } catch (err) { alert("Failed to fetch database records."); }
     }
@@ -282,7 +270,6 @@
         loadActiveProfileRecords();
     }
 
-    // --- Sidebar & Navigation ---
     const iconMap = ['truck', 'id-card', 'trailer', 'box', 'route', 'gas-pump', 'wrench', 'file-contract'];
     function getHashIcon(str) {
         let hash = 0; for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
@@ -292,17 +279,14 @@
     function renderSidebar() {
         const nav = document.getElementById('sidebarNav');
         nav.innerHTML = '';
-        
         if(!currentProfile) return;
 
-        // Dashboard Link
         const dashLi = document.createElement('li');
         dashLi.className = 'nav-item mb-1';
         dashLi.innerHTML = `<a class="nav-link ${activeTable === 'dashboard' ? 'active' : ''}" onclick="selectTable('dashboard')"><i class="fa-solid fa-chart-pie me-2"></i> Dashboard</a>`;
         nav.appendChild(dashLi);
 
-        const tables = Object.keys(activeDatabaseStructure);
-        tables.forEach(tableName => {
+        Object.keys(activeDatabaseStructure).forEach(tableName => {
             const li = document.createElement('li');
             li.className = 'nav-item mb-1';
             const isActive = activeTable === tableName;
@@ -319,10 +303,8 @@
     function selectTable(tableName) {
         activeTable = tableName;
         renderSidebar(); 
-        
-        if (tableName === 'dashboard') {
-            renderDashboard();
-        } else {
+        if (tableName === 'dashboard') { renderDashboard(); } 
+        else {
             document.getElementById('currentTableName').textContent = tableName;
             renderColumnPicker();
             renderTable();
@@ -330,7 +312,6 @@
         updateVisibilityState();
     }
 
-    // --- Dashboard View ---
     const colors = ['primary', 'success', 'info', 'warning', 'danger'];
     function renderDashboard() {
         document.getElementById('dash-title-profile').textContent = currentProfile.toUpperCase();
@@ -339,25 +320,21 @@
 
         const tables = Object.keys(activeDatabaseStructure);
         if (tables.length === 0) {
-            container.innerHTML = `<div class="col-12"><div class="alert alert-secondary border-0"><i class="fa-solid fa-info-circle me-2"></i>Your database is empty. Use the Schema Builder or Data Importer in the sidebar to begin.</div></div>`;
+            container.innerHTML = `<div class="col-12"><div class="alert alert-secondary border-0"><i class="fa-solid fa-info-circle me-2"></i>Your database is empty. Use the Import Tool to begin.</div></div>`;
             return;
         }
 
         tables.forEach((tableName, index) => {
-            const count = activeDatabaseStructure[tableName].length;
-            const color = colors[index % colors.length];
-            const icon = getHashIcon(tableName);
-            
             container.innerHTML += `
                 <div class="col-md-4 col-sm-6">
-                    <div class="card bg-white shadow-sm card-counter border-${color} p-3 cursor-pointer" onclick="selectTable('${tableName}')" style="cursor: pointer;">
+                    <div class="card bg-white shadow-sm card-counter border-${colors[index % colors.length]} p-3 cursor-pointer" onclick="selectTable('${tableName}')" style="cursor: pointer;">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <h6 class="text-muted text-uppercase small fw-bold">${tableName}</h6>
-                                <h3 class="fw-bold mb-0 text-dark">${count}</h3>
+                                <h3 class="fw-bold mb-0 text-dark">${activeDatabaseStructure[tableName].length}</h3>
                                 <small class="text-muted">Total Indexed Records</small>
                             </div>
-                            <i class="fa-solid fa-${icon} fa-2x text-${color} opacity-50"></i>
+                            <i class="fa-solid fa-${getHashIcon(tableName)} fa-2x text-${colors[index % colors.length]} opacity-50"></i>
                         </div>
                     </div>
                 </div>
@@ -365,20 +342,13 @@
         });
     }
 
-    // --- Table View & Columns ---
     function renderColumnPicker() {
         const container = document.getElementById('columnToggleContainer');
         container.innerHTML = '';
-        if(!activeDatabaseStructure[activeTable] || activeDatabaseStructure[activeTable].length === 0) {
-            container.innerHTML = '<li><span class="dropdown-item-text text-muted small">No columns</span></li>';
-            return;
-        }
+        if(!activeDatabaseStructure[activeTable] || activeDatabaseStructure[activeTable].length === 0) return;
 
-        const headers = Object.keys(activeDatabaseStructure[activeTable][0]);
-        if(!hiddenColumns[activeTable]) hiddenColumns[activeTable] = [];
-
-        headers.forEach(header => {
-            const isHidden = hiddenColumns[activeTable].includes(header);
+        Object.keys(activeDatabaseStructure[activeTable][0]).forEach(header => {
+            const isHidden = (hiddenColumns[activeTable] || []).includes(header);
             container.innerHTML += `
                 <li>
                     <label class="dropdown-item d-flex align-items-center gap-2 cursor-pointer">
@@ -402,19 +372,16 @@
         const thead = document.getElementById('dynamic-table-head');
         const tbody = document.getElementById('dynamic-table-body');
         const query = document.getElementById('searchInput').value.toLowerCase();
-        
         const tableRows = activeDatabaseStructure[activeTable] || [];
 
         if(tableRows.length === 0) {
             thead.innerHTML = '';
-            tbody.innerHTML = `<tr><td class="text-center text-muted py-5"><i class="fa-solid fa-folder-open fa-2x mb-3 d-block"></i>No data entries found in ${activeTable}.</td></tr>`;
+            tbody.innerHTML = `<tr><td class="text-center text-muted py-5"><i class="fa-solid fa-folder-open fa-2x mb-3 d-block"></i>No data entries found.</td></tr>`;
             document.getElementById('recordCount').textContent = "0 Records";
             return;
         }
 
-        const allHeaders = Object.keys(tableRows[0]);
-        const visibleHeaders = allHeaders.filter(h => !(hiddenColumns[activeTable] || []).includes(h));
-
+        const visibleHeaders = Object.keys(tableRows[0]).filter(h => !(hiddenColumns[activeTable] || []).includes(h));
         const filteredRows = tableRows.map((row, idx) => ({ row, idx })).filter(({ row }) => {
             if (!query) return true;
             return visibleHeaders.some(h => String(row[h] || '').toLowerCase().includes(query));
@@ -422,117 +389,58 @@
 
         document.getElementById('recordCount').textContent = `${filteredRows.length} Records`;
 
-        // Render Headers
         thead.innerHTML = `<tr>${visibleHeaders.map(h => `<th>${h}</th>`).join('')}<th class="text-end">Actions</th></tr>`;
-
-        // Render Rows
         tbody.innerHTML = '';
         filteredRows.forEach(({ row, idx }) => {
             const tr = document.createElement('tr');
             let html = '';
             visibleHeaders.forEach(header => {
-                const value = row[header] !== undefined && row[header] !== null ? row[header] : '';
-                html += `
-                    <td>
-                        <input type="text" value="${escapeHtml(String(value))}" 
-                            onchange="updateCellInline('${activeTable}', ${idx}, '${header}', this.value)"
-                            class="inline-input" />
-                    </td>`;
+                html += `<td><input type="text" value="${escapeHtml(String(row[header] !== undefined ? row[header] : ''))}" onchange="updateCellInline('${activeTable}', ${idx}, '${header}', this.value)" class="inline-input" /></td>`;
             });
-            html += `
-                <td class="text-end">
-                    <button onclick="deleteRowContext('${activeTable}', ${idx})" class="btn btn-sm btn-outline-danger border-0"><i class="fa-solid fa-trash"></i></button>
-                </td>
-            `;
+            html += `<td class="text-end"><button onclick="deleteRowContext('${activeTable}', ${idx})" class="btn btn-sm btn-outline-danger border-0"><i class="fa-solid fa-trash"></i></button></td>`;
             tr.innerHTML = html;
             tbody.appendChild(tr);
         });
     }
 
-    // --- API Interactions ---
     async function updateCellInline(table, index, field, value) {
-        await fetch('/api/update-cell', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ profile: currentProfile, table, index, field, value })
-        });
+        await fetch('/api/update-cell', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ profile: currentProfile, table, index, field, value }) });
         activeDatabaseStructure[table][index][field] = value; 
     }
 
     async function deleteRowContext(table, index) {
         if(!confirm(`Delete record from ${table}?`)) return;
-        const res = await fetch('/api/delete-row', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ profile: currentProfile, table, index })
-        });
-        if(res.ok) {
-            activeDatabaseStructure[table].splice(index, 1);
-            renderSidebar();
-            renderTable();
-        }
+        const res = await fetch('/api/delete-row', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ profile: currentProfile, table, index }) });
+        if(res.ok) { activeDatabaseStructure[table].splice(index, 1); renderSidebar(); renderTable(); }
     }
 
     async function deleteActiveTable() {
-        if (!activeTable || activeTable === 'dashboard') return;
-        if (!confirm(`WARNING: Are you absolutely sure you want to permanently delete "${activeTable}" and all its data?`)) return;
-
+        if (!activeTable || activeTable === 'dashboard' || !confirm(`WARNING: Are you absolutely sure you want to permanently delete "${activeTable}"?`)) return;
         delete activeDatabaseStructure[activeTable];
-        try {
-            const res = await fetch('/api/upload-db', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ profile: currentProfile, dbData: activeDatabaseStructure })
-            });
-
-            if (res.ok) {
-                selectTable('dashboard');
-            }
-        } catch (e) { alert("Failed to delete table."); }
+        const res = await fetch('/api/upload-db', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ profile: currentProfile, dbData: activeDatabaseStructure }) });
+        if (res.ok) selectTable('dashboard');
     }
 
-    // --- Modals Logic ---
     function openAddRecordModal() {
-        if(!activeTable || activeTable === 'dashboard') return alert("Select a specific table from the sidebar first.");
+        if(!activeTable || activeTable === 'dashboard') return alert("Select a table first.");
         document.getElementById('modalTitle').innerHTML = `<i class="fa-solid fa-plus-circle me-2"></i>Add to ${activeTable}`;
-        
         const formContainer = document.getElementById('dynamicFormFields');
         formContainer.innerHTML = '';
-        
-        const headers = Object.keys(activeDatabaseStructure[activeTable][0] || {});
-        headers.forEach(header => {
-            formContainer.innerHTML += `
-                <div class="mb-3">
-                    <label class="form-label fw-bold text-muted small text-uppercase">${header}</label>
-                    <input type="text" id="addInput_${header}" class="form-control bg-light" required>
-                </div>
-            `;
+        Object.keys(activeDatabaseStructure[activeTable][0] || {}).forEach(header => {
+            formContainer.innerHTML += `<div class="mb-3"><label class="form-label fw-bold text-muted small text-uppercase">${header}</label><input type="text" id="addInput_${header}" class="form-control bg-light" required></div>`;
         });
-        
         addModalInstance.show();
     }
 
     async function submitNewRecord(e) {
         e.preventDefault();
-        const headers = Object.keys(activeDatabaseStructure[activeTable][0] || {});
         const rowData = {};
-        
-        headers.forEach(header => {
-            rowData[header] = document.getElementById(`addInput_${header}`).value;
-        });
-
-        const res = await fetch('/api/add-row', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ profile: currentProfile, table: activeTable, rowData })
-        });
-
+        Object.keys(activeDatabaseStructure[activeTable][0] || {}).forEach(header => { rowData[header] = document.getElementById(`addInput_${header}`).value; });
+        const res = await fetch('/api/add-row', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ profile: currentProfile, table: activeTable, rowData }) });
         if(res.ok) {
             if(!activeDatabaseStructure[activeTable]) activeDatabaseStructure[activeTable] = [];
             activeDatabaseStructure[activeTable].unshift(rowData);
-            addModalInstance.hide();
-            renderSidebar();
-            renderTable();
+            addModalInstance.hide(); renderSidebar(); renderTable();
         }
     }
 
@@ -540,30 +448,14 @@
         const area = document.getElementById('builderColumnArea');
         area.innerHTML = '';
         const tables = Object.keys(activeDatabaseStructure);
-
         if (tables.length === 0) {
-            area.innerHTML = '<div class="col-12"><div class="alert alert-warning">No existing tables to draw columns from. Import data or create a starter table first.</div></div>';
+            area.innerHTML = '<div class="col-12"><div class="alert alert-warning">No tables available.</div></div>';
         } else {
             tables.forEach(tableName => {
                 const headers = Object.keys(activeDatabaseStructure[tableName][0] || {});
                 if (headers.length > 0) {
-                    let html = `
-                        <div class="col-md-6">
-                            <div class="card shadow-sm h-100">
-                                <div class="card-header bg-light py-2 fw-bold text-dark"><i class="fa-solid fa-${getHashIcon(tableName)} me-2 text-primary"></i>${tableName}</div>
-                                <div class="card-body p-2">
-                                    <div class="row g-2">
-                    `;
-                    headers.forEach(header => {
-                        html += `
-                            <div class="col-6">
-                                <div class="form-check">
-                                    <input class="form-check-input builder-col-checkbox" type="checkbox" value="${header}" id="cb_${tableName}_${header}">
-                                    <label class="form-check-label small text-truncate d-block" for="cb_${tableName}_${header}" title="${header}">${header}</label>
-                                </div>
-                            </div>
-                        `;
-                    });
+                    let html = `<div class="col-md-6"><div class="card shadow-sm h-100"><div class="card-header bg-light py-2 fw-bold text-dark"><i class="fa-solid fa-${getHashIcon(tableName)} me-2 text-primary"></i>${tableName}</div><div class="card-body p-2"><div class="row g-2">`;
+                    headers.forEach(header => { html += `<div class="col-6"><div class="form-check"><input class="form-check-input builder-col-checkbox" type="checkbox" value="${header}" id="cb_${tableName}_${header}"><label class="form-check-label small text-truncate d-block" for="cb_${tableName}_${header}" title="${header}">${header}</label></div></div>`; });
                     html += `</div></div></div></div>`;
                     area.innerHTML += html;
                 }
@@ -574,72 +466,73 @@
 
     async function submitNewTableSchema() {
         const name = document.getElementById('newSchemaName').value.trim();
-        if (!name) return alert("Please enter a name for the new table.");
-
-        const checkboxes = document.querySelectorAll('.builder-col-checkbox:checked');
-        const selectedCols = Array.from(checkboxes).map(cb => cb.value);
-        
+        if (!name) return alert("Enter table name.");
+        const selectedCols = Array.from(document.querySelectorAll('.builder-col-checkbox:checked')).map(cb => cb.value);
         const uniqueCols = [...new Set(selectedCols)]; 
-        if (uniqueCols.length === 0) return alert("Please select at least one column.");
-
-        const dummyRow = {};
-        uniqueCols.forEach(col => dummyRow[col] = "—"); 
-
-        const res = await fetch('/api/add-row', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ profile: currentProfile, table: name, rowData: dummyRow })
-        });
-
+        if (uniqueCols.length === 0) return alert("Select at least one column.");
+        const dummyRow = {}; uniqueCols.forEach(col => dummyRow[col] = "—"); 
+        const res = await fetch('/api/add-row', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ profile: currentProfile, table: name, rowData: dummyRow }) });
         if(res.ok) {
             if(!activeDatabaseStructure[name]) activeDatabaseStructure[name] = [];
             activeDatabaseStructure[name].unshift(dummyRow);
-            
             document.getElementById('newSchemaName').value = '';
-            builderModalInstance.hide();
-            selectTable(name); 
+            builderModalInstance.hide(); selectTable(name); 
         }
     }
 
-    // --- Bulk Import Logic ---
+    // --- NEW: SHEETJS EXCEL PARSER ---
     function openImportModal() {
-        if (!currentProfile) {
-            alert("Please create or select an Active Database Profile first!");
-            return;
-        }
+        if (!currentProfile) return alert("Please create or select an Active Database Profile first!");
         document.getElementById('jsonImportArea').value = '';
+        document.getElementById('excelFileInput').value = '';
         importModalInstance.show();
+    }
+
+    function handleExcelUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = new Uint8Array(e.target.result);
+                // Read the workbook using SheetJS
+                const workbook = XLSX.read(data, { type: 'array' });
+                
+                let parsedDatabase = {};
+
+                // Loop through every tab/sheet in the uploaded Excel file
+                workbook.SheetNames.forEach(sheetName => {
+                    // Convert sheet rows to JSON objects
+                    const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: "" });
+                    if (sheetData.length > 0) {
+                        parsedDatabase[sheetName] = sheetData;
+                    }
+                });
+
+                // Display the parsed JSON in the textarea for the user to review
+                document.getElementById('jsonImportArea').value = JSON.stringify(parsedDatabase, null, 2);
+                alert(`Successfully parsed ${Object.keys(parsedDatabase).length} tables from the Excel file! Click 'Overwrite & Save' to finalize.`);
+            } catch (err) {
+                alert("Error reading the Excel file. Make sure it is a valid .xlsx or .csv format.");
+            }
+        };
+        reader.readAsArrayBuffer(file);
     }
 
     async function submitBulkImport() {
         const rawText = document.getElementById('jsonImportArea').value;
         let parsedData;
-        
+        try { parsedData = JSON.parse(rawText); } catch (e) { return alert("Invalid format. Please upload an Excel file or paste valid JSON."); }
+        if (!confirm(`Overwrite the "${currentProfile}" database?`)) return;
         try {
-            parsedData = JSON.parse(rawText);
-        } catch (e) {
-            alert("Invalid JSON format. Please check your syntax.");
-            return;
-        }
-
-        if (!confirm(`Warning: This will overwrite the current data in the "${currentProfile}" database. Continue?`)) return;
-
-        try {
-            const res = await fetch('/api/upload-db', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ profile: currentProfile, dbData: parsedData })
-            });
-
+            const res = await fetch('/api/upload-db', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ profile: currentProfile, dbData: parsedData }) });
             if (res.ok) {
                 importModalInstance.hide();
                 activeTable = 'dashboard'; 
                 loadActiveProfileRecords(); 
-                alert("Data imported successfully!");
             }
-        } catch (e) { 
-            alert("Failed to upload data to the server."); 
-        }
+        } catch (e) { alert("Failed to upload data."); }
     }
 
     function escapeHtml(str) { return typeof str !== 'string' ? str : str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
