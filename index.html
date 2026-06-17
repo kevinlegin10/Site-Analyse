@@ -51,7 +51,8 @@
                 </ul>
 
             <div class="mt-3 pt-3 border-top border-secondary border-opacity-50">
-                <button onclick="openTableBuilderModal()" class="btn btn-outline-light w-100"><i class="fa-solid fa-table-cells me-2"></i> Construct New Table</button>
+                <button onclick="openTableBuilderModal()" class="btn btn-outline-light w-100 mb-2"><i class="fa-solid fa-table-cells me-2"></i> Construct New Table</button>
+                <button onclick="openImportModal()" class="btn btn-outline-success w-100"><i class="fa-solid fa-file-import me-2"></i> Import JSON Data</button>
             </div>
         </nav>
 
@@ -161,6 +162,29 @@
     </div>
 </div>
 
+<div class="modal fade" id="importModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-file-import me-2"></i>Bulk Data Import</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small">Paste your structured JSON data here. This will completely overwrite the current Active Profile with the new tables and data.</p>
+                <textarea id="jsonImportArea" class="form-control font-monospace bg-dark text-success" rows="12" placeholder='{
+  "Trucks": [
+    { "Truck No": "A1002", "Brand": "Volvo" }
+  ]
+}'></textarea>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button onclick="submitBulkImport()" class="btn btn-success"><i class="fa-solid fa-upload me-2"></i>Upload to Database</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
@@ -170,11 +194,12 @@
     let hiddenColumns = {};
 
     // Bootstrap Modal Instances
-    let addModalInstance, builderModalInstance;
+    let addModalInstance, builderModalInstance, importModalInstance;
 
     document.addEventListener("DOMContentLoaded", () => {
         addModalInstance = new bootstrap.Modal(document.getElementById('addRecordModal'));
         builderModalInstance = new bootstrap.Modal(document.getElementById('tableBuilderModal'));
+        importModalInstance = new bootstrap.Modal(document.getElementById('importModal'));
         
         fetchAvailableProfiles();
         updateVisibilityState();
@@ -314,7 +339,7 @@
 
         const tables = Object.keys(activeDatabaseStructure);
         if (tables.length === 0) {
-            container.innerHTML = `<div class="col-12"><div class="alert alert-secondary border-0"><i class="fa-solid fa-info-circle me-2"></i>Your database is empty. Use the Schema Builder in the sidebar to begin.</div></div>`;
+            container.innerHTML = `<div class="col-12"><div class="alert alert-secondary border-0"><i class="fa-solid fa-info-circle me-2"></i>Your database is empty. Use the Schema Builder or Data Importer in the sidebar to begin.</div></div>`;
             return;
         }
 
@@ -573,6 +598,47 @@
             document.getElementById('newSchemaName').value = '';
             builderModalInstance.hide();
             selectTable(name); 
+        }
+    }
+
+    // --- Bulk Import Logic ---
+    function openImportModal() {
+        if (!currentProfile) {
+            alert("Please create or select an Active Database Profile first!");
+            return;
+        }
+        document.getElementById('jsonImportArea').value = '';
+        importModalInstance.show();
+    }
+
+    async function submitBulkImport() {
+        const rawText = document.getElementById('jsonImportArea').value;
+        let parsedData;
+        
+        try {
+            parsedData = JSON.parse(rawText);
+        } catch (e) {
+            alert("Invalid JSON format. Please check your syntax.");
+            return;
+        }
+
+        if (!confirm(`Warning: This will overwrite the current data in the "${currentProfile}" database. Continue?`)) return;
+
+        try {
+            const res = await fetch('/api/upload-db', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ profile: currentProfile, dbData: parsedData })
+            });
+
+            if (res.ok) {
+                importModalInstance.hide();
+                activeTable = 'dashboard'; 
+                loadActiveProfileRecords(); 
+                alert("Data imported successfully!");
+            }
+        } catch (e) { 
+            alert("Failed to upload data to the server."); 
         }
     }
 
