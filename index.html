@@ -1,497 +1,553 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Fleet Data Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-  </head>
-  <body class="bg-slate-950 text-slate-100 font-sans h-screen flex overflow-hidden">
-
-    <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col hidden md:flex">
-      <div class="p-5 border-b border-slate-800">
-        <div class="flex items-center gap-3">
-          <div class="bg-indigo-600 p-2 rounded-lg text-white shadow-lg shadow-indigo-500/30">
-            <i data-lucide="database" class="w-5 h-5"></i>
-          </div>
-          <div>
-            <h1 class="text-lg font-bold tracking-tight text-white">DataForge</h1>
-            <p class="text-xs text-slate-400">Fleet Control Panel</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="p-4 border-b border-slate-800">
-        <div class="flex justify-between items-center mb-2">
-          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Active Profile</label>
-          <button onclick="createNewProfile()" class="text-indigo-400 hover:text-indigo-300 text-xs font-bold flex items-center gap-1 transition-colors">
-            <i data-lucide="plus" class="w-3 h-3"></i> New
-          </button>
-        </div>
-        <select id="profileSelect" onchange="switchProfile()" class="w-full bg-slate-950 border border-slate-700 text-slate-200 text-sm rounded-lg focus:ring-indigo-500 p-2 outline-none">
-          <option value="default">default</option>
-        </select>
-      </div>
-
-      <div class="p-4 flex-1 overflow-y-auto">
-        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Database Tables</label>
-        <ul id="sidebarNav" class="space-y-1">
-          <li class="text-slate-500 text-sm italic px-2">Loading tables...</li>
-        </ul>
-      </div>
-
-      <div class="p-4 border-t border-slate-800 bg-slate-900/50">
-        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Schema Builder</label>
-        <button onclick="openTableBuilderModal()" class="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2.5 rounded-lg text-sm font-medium transition-all shadow-sm">
-          <i data-lucide="table-properties" class="w-4 h-4"></i> Construct New Table
-        </button>
-      </div>
-    </aside>
-
-    <main class="flex-1 flex flex-col h-full overflow-hidden relative">
-      <header class="bg-slate-950 border-b border-slate-800 p-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 z-10">
-        <div class="relative w-full sm:w-96">
-          <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
-          <input type="text" id="searchInput" onkeyup="renderTable()" placeholder="Search active table..." class="w-full bg-slate-900 border border-slate-700 text-sm text-white rounded-lg pl-10 pr-4 py-2.5 focus:ring-1 focus:ring-indigo-500 outline-none transition-all">
-        </div>
-
-        <div class="flex items-center gap-3 w-full sm:w-auto">
-          <div class="relative group">
-            <button class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2.5 rounded-lg border border-slate-700 text-sm font-medium transition-all">
-              <i data-lucide="columns" class="w-4 h-4"></i> Columns
-            </button>
-            <div class="absolute right-0 mt-2 w-48 bg-slate-900 border border-slate-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 p-2 max-h-64 overflow-y-auto" id="columnToggleContainer">
-              <p class="text-xs text-slate-400 italic px-2 py-1">Select a table first</p>
-            </div>
-          </div>
-
-          <button onclick="openAddRecordModal()" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium shadow-lg shadow-indigo-600/20 transition-all">
-            <i data-lucide="plus" class="w-4 h-4"></i> Assign / Add
-          </button>
-        </div>
-      </header>
-
-      <div class="flex-1 overflow-auto p-6 bg-slate-900/50">
-        <div id="tableStatusHeader" class="mb-4 flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <h2 id="currentTableName" class="text-xl font-bold text-white">No Table Selected</h2>
-            <button id="deleteTableBtn" onclick="deleteActiveTable()" class="hidden text-slate-500 hover:text-rose-500 bg-slate-900 hover:bg-rose-500/10 p-1.5 rounded-md transition-all border border-slate-800 hover:border-rose-500/30" title="Delete Entire Table">
-              <i data-lucide="trash-2" class="w-4 h-4"></i>
-            </button>
-          </div>
-          <span id="recordCount" class="text-sm text-slate-400"></span>
-        </div>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Fleet Management Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; font-family: system-ui, -apple-system, sans-serif; height: 100vh; overflow: hidden; }
+        .sidebar { background-color: #212529; min-height: 100vh; color: white; display: flex; flex-direction: column; }
+        .nav-link { color: rgba(255,255,255,0.75); cursor: pointer; transition: all 0.2s; }
+        .nav-link:hover { color: white; background-color: rgba(255,255,255,0.1); }
+        .nav-link.active { background-color: #0d6efd !important; color: white !important; box-shadow: 0 4px 6px rgba(13, 110, 253, 0.2); }
+        .card-counter { border-left: 5px solid; transition: transform 0.2s; }
+        .card-counter:hover { transform: translateY(-3px); }
+        .page-section { display: none; height: 100%; overflow-y: auto; padding-bottom: 2rem; }
+        .page-section.active { display: block; }
         
-        <div id="tableLoader" class="hidden flex-col items-center justify-center py-20">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500 mb-4"></div>
-          <p class="text-sm text-slate-400">Querying records...</p>
-        </div>
-
-        <div id="tableContainer" class="bg-slate-950 border border-slate-800 rounded-xl shadow-sm overflow-hidden hidden">
-          </div>
-      </div>
-    </main>
-
-    <div id="addRecordModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-      <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-xl shadow-2xl p-6 relative">
-        <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
-          <h3 class="text-lg font-bold text-white" id="modalTitle">Add Record</h3>
-          <button onclick="closeModal('addRecordModal')" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
-        </div>
-        <form id="addRecordForm" onsubmit="submitNewRecord(event)" class="space-y-4">
-          <div id="dynamicFormFields" class="space-y-3 max-h-96 overflow-y-auto pr-2">
-            </div>
-          <div class="flex gap-3 justify-end pt-4 border-t border-slate-800">
-            <button type="button" onclick="closeModal('addRecordModal')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium">Cancel</button>
-            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium">Save Record</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <div id="tableBuilderModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-      <div class="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-xl shadow-2xl p-6 relative flex flex-col max-h-[90vh]">
-        <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4 shrink-0">
-          <div>
-            <h3 class="text-lg font-bold text-white flex items-center gap-2"><i data-lucide="table-properties" class="w-5 h-5 text-indigo-400"></i> Construct Custom Table</h3>
-            <p class="text-xs text-slate-400 mt-1">Select columns from existing tables to build a new view schema.</p>
-          </div>
-          <button onclick="closeModal('tableBuilderModal')" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
-        </div>
+        /* Dynamic table input styling */
+        .inline-input { background: transparent; border: 1px solid transparent; width: 100%; padding: 4px; border-radius: 4px; transition: all 0.2s;}
+        .inline-input:focus { background: white; border-color: #0d6efd; outline: none; box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25); }
         
-        <div class="space-y-4 overflow-y-auto pr-2 flex-1">
-          <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">New Table Name</label>
-            <input type="text" id="newSchemaName" required placeholder="e.g., Unified Analytics, Driver Trucks" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:ring-1 focus:ring-indigo-500 outline-none">
-          </div>
-          
-          <div class="bg-slate-950 border border-slate-800 rounded-lg p-4">
-            <label class="block text-xs font-semibold uppercase tracking-wider text-indigo-400 mb-3">Available Columns</label>
-            <div id="builderColumnArea" class="space-y-4">
-              </div>
-          </div>
-        </div>
+        #empty-state-overlay { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 80vh; text-align: center;}
+    </style>
+</head>
+<body>
 
-        <div class="flex gap-3 justify-end pt-4 border-t border-slate-800 mt-4 shrink-0">
-          <button type="button" onclick="closeModal('tableBuilderModal')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium">Cancel</button>
-          <button onclick="submitNewTableSchema()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium shadow-lg shadow-indigo-600/20">Generate Table</button>
-        </div>
-      </div>
+<div class="container-fluid h-100 p-0">
+    <div class="row g-0 h-100">
+        
+        <nav class="col-md-3 col-lg-2 d-md-flex sidebar p-3 shadow">
+            <div class="d-flex align-items-center mb-3 text-white text-decoration-none">
+                <i class="fa-solid fa-truck-fleet fa-2x me-2 text-primary"></i>
+                <span class="fs-4 fw-bold">FleetPortal</span>
+            </div>
+            
+            <div class="mb-3 bg-dark p-3 rounded border border-secondary border-opacity-25">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <label class="text-uppercase text-secondary small fw-bold mb-0">Active Database</label>
+                    <button onclick="createNewProfile()" class="btn btn-sm btn-outline-primary py-0 px-2" title="Create New Database"><i class="fa-solid fa-plus"></i> New</button>
+                </div>
+                <select id="profileSelect" onchange="switchProfile()" class="form-select form-select-sm bg-dark text-white border-secondary shadow-none">
+                    <option value="" disabled selected>-- Select a Profile --</option>
+                </select>
+            </div>
+
+            <hr class="text-secondary mt-0">
+
+            <ul class="nav nav-pills flex-column mb-auto flex-grow-1 overflow-auto" id="sidebarNav">
+                </ul>
+
+            <div class="mt-3 pt-3 border-top border-secondary border-opacity-50">
+                <button onclick="openTableBuilderModal()" class="btn btn-outline-light w-100"><i class="fa-solid fa-table-cells me-2"></i> Construct New Table</button>
+            </div>
+        </nav>
+
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 bg-light h-100 overflow-hidden">
+            
+            <div id="empty-state-overlay">
+                <i class="fa-solid fa-database fa-4x text-secondary mb-3 opacity-50"></i>
+                <h2 class="text-dark fw-bold">No Database Selected</h2>
+                <p class="text-muted mb-4 max-w-md">Please select an existing database profile from the sidebar or construct a new one to begin assigning values and tracking fleet data.</p>
+                <button onclick="createNewProfile()" class="btn btn-primary btn-lg"><i class="fa-solid fa-plus me-2"></i>Create New Database</button>
+            </div>
+
+            <section id="dashboard-view" class="page-section">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-4 pb-2 mb-4 border-bottom">
+                    <h1 class="h2 fw-bold text-dark"><span id="dash-title-profile" class="text-primary"></span> Overview</h1>
+                </div>
+                <div class="row g-3 mb-4" id="dashboard-cards"></div>
+            </section>
+
+            <section id="table-view" class="page-section">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-4 pb-2 mb-3 border-bottom gap-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <h1 class="h2 fw-bold mb-0" id="currentTableName">Table Name</h1>
+                        <button onclick="deleteActiveTable()" class="btn btn-outline-danger btn-sm" title="Delete Entire Table"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                    
+                    <div class="d-flex gap-2 w-100 w-md-auto justify-content-end">
+                        <div class="input-group" style="max-width: 250px;">
+                            <span class="input-group-text bg-white"><i class="fa-solid fa-search text-muted"></i></span>
+                            <input type="text" id="searchInput" onkeyup="renderTable()" class="form-control" placeholder="Search records...">
+                        </div>
+                        
+                        <div class="dropdown">
+                            <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                                <i class="fa-solid fa-columns"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow p-2" id="columnToggleContainer" style="min-width: 200px; max-height: 300px; overflow-y: auto;">
+                                </ul>
+                        </div>
+
+                        <button onclick="openAddRecordModal()" class="btn btn-primary shadow-sm"><i class="fa-solid fa-plus me-1"></i> Add Record</button>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="badge bg-secondary px-3 py-2" id="recordCount">0 Records</span>
+                </div>
+
+                <div class="card shadow-sm border-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped align-middle mb-0 m-0">
+                            <thead class="table-dark" id="dynamic-table-head">
+                                </thead>
+                            <tbody id="dynamic-table-body" class="bg-white">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
     </div>
+</div>
 
-    <script>
-      let currentProfile = 'default';
-      let activeDatabaseStructure = {};
-      let activeTable = null;
-      let hiddenColumns = {};
+<div class="modal fade" id="addRecordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold" id="modalTitle"><i class="fa-solid fa-plus-circle me-2"></i>Add Record</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addRecordForm" onsubmit="submitNewRecord(event)">
+                <div class="modal-body" id="dynamicFormFields" style="max-height: 60vh; overflow-y: auto;">
+                    </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success"><i class="fa-solid fa-save me-2"></i>Save Assignment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
-      document.addEventListener("DOMContentLoaded", () => {
-        initializeIcons();
+<div class="modal fade" id="tableBuilderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-sitemap me-2"></i>Construct Custom Table Schema</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-4">Build a new relational table by selecting columns from your existing datasets.</p>
+                
+                <div class="mb-4">
+                    <label class="form-label fw-bold">New Table Name</label>
+                    <input type="text" id="newSchemaName" class="form-control form-control-lg" placeholder="e.g., Active Allocations, Maintenance Log" required>
+                </div>
+                
+                <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">Available Database Columns</h6>
+                <div id="builderColumnArea" class="row g-3">
+                    </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button onclick="submitNewTableSchema()" class="btn btn-primary"><i class="fa-solid fa-wand-magic-sparkles me-2"></i>Generate Table</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    let currentProfile = ''; // Empty by default to trigger the empty state screen
+    let activeDatabaseStructure = {};
+    let activeTable = 'dashboard';
+    let hiddenColumns = {};
+
+    // Bootstrap Modal Instances
+    let addModalInstance, builderModalInstance;
+
+    document.addEventListener("DOMContentLoaded", () => {
+        addModalInstance = new bootstrap.Modal(document.getElementById('addRecordModal'));
+        builderModalInstance = new bootstrap.Modal(document.getElementById('tableBuilderModal'));
+        
         fetchAvailableProfiles();
-        loadActiveProfileRecords();
-      });
+        updateVisibilityState();
+    });
 
-      function initializeIcons() { if (window.lucide) window.lucide.createIcons(); }
-
-      async function fetchAvailableProfiles() {
-        try {
-          const res = await fetch('/api/profiles');
-          const data = await res.json();
-          const selector = document.getElementById('profileSelect');
-          selector.innerHTML = '';
-          data.profiles.forEach(p => {
-            const opt = document.createElement('option');
-            opt.value = p; opt.textContent = p;
-            if(p === currentProfile) opt.selected = true;
-            selector.appendChild(opt);
-          });
-        } catch(e) { console.error("Profiles failed", e); }
-      }
-
-      function createNewProfile() {
-        const name = prompt("Enter a name for the new Database Profile:");
-        if (name && name.trim()) {
-          currentProfile = name.trim();
-          activeDatabaseStructure = {};
-          activeTable = null;
-          
-          const sel = document.getElementById('profileSelect');
-          if (![...sel.options].some(o => o.value === currentProfile)) {
-            const opt = document.createElement('option');
-            opt.value = currentProfile; opt.textContent = currentProfile;
-            sel.appendChild(opt);
-          }
-          sel.value = currentProfile;
-          
-          renderSidebar();
-          renderTable();
+    // --- State & UI Managers ---
+    function updateVisibilityState() {
+        if (!currentProfile) {
+            document.getElementById('empty-state-overlay').style.display = 'flex';
+            document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+            document.getElementById('sidebarNav').innerHTML = '';
+        } else {
+            document.getElementById('empty-state-overlay').style.display = 'none';
+            if (activeTable === 'dashboard') {
+                document.getElementById('dashboard-view').classList.add('active');
+                document.getElementById('table-view').classList.remove('active');
+            } else {
+                document.getElementById('dashboard-view').classList.remove('active');
+                document.getElementById('table-view').classList.add('active');
+            }
         }
-      }
+    }
 
-      async function loadActiveProfileRecords() {
-        document.getElementById('tableLoader').style.display = 'flex';
-        document.getElementById('tableContainer').classList.add('hidden');
-        document.getElementById('deleteTableBtn').classList.add('hidden');
+    async function fetchAvailableProfiles() {
         try {
-          const res = await fetch(`/api/data?profile=${currentProfile}`);
-          activeDatabaseStructure = await res.json();
-          
-          document.getElementById('tableLoader').style.display = 'none';
-          renderSidebar();
-          
-          const tables = Object.keys(activeDatabaseStructure);
-          if(tables.length > 0 && !activeTable) selectTable(tables[0]);
-          else if (activeTable) renderTable();
+            const res = await fetch('/api/profiles');
+            const data = await res.json();
+            const selector = document.getElementById('profileSelect');
+            selector.innerHTML = '<option value="" disabled selected>-- Select a Profile --</option>';
+            data.profiles.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p; opt.textContent = p;
+                if(p === currentProfile) opt.selected = true;
+                selector.appendChild(opt);
+            });
+        } catch(e) { console.error("Profiles failed", e); }
+    }
 
+    function createNewProfile() {
+        const name = prompt("Enter a name for the new Database Workspace (e.g., Fleet_2026):");
+        if (name && name.trim()) {
+            currentProfile = name.trim();
+            activeDatabaseStructure = {};
+            activeTable = 'dashboard';
+            
+            const sel = document.getElementById('profileSelect');
+            if (![...sel.options].some(o => o.value === currentProfile)) {
+                const opt = document.createElement('option');
+                opt.value = currentProfile; opt.textContent = currentProfile;
+                sel.appendChild(opt);
+            }
+            sel.value = currentProfile;
+            
+            renderSidebar();
+            renderDashboard();
+            updateVisibilityState();
+        }
+    }
+
+    async function loadActiveProfileRecords() {
+        try {
+            const res = await fetch(`/api/data?profile=${currentProfile}`);
+            activeDatabaseStructure = await res.json();
+            
+            renderSidebar();
+            
+            if(activeTable === 'dashboard' || !activeDatabaseStructure[activeTable]) {
+                activeTable = 'dashboard';
+                renderDashboard();
+            } else {
+                renderTable();
+            }
+            updateVisibilityState();
         } catch (err) { alert("Failed to fetch database records."); }
-      }
+    }
 
-      function switchProfile() {
+    function switchProfile() {
         currentProfile = document.getElementById('profileSelect').value;
-        activeTable = null; 
+        activeTable = 'dashboard'; 
         loadActiveProfileRecords();
-      }
+    }
 
-      function renderSidebar() {
+    // --- Sidebar & Navigation ---
+    const iconMap = ['truck', 'id-card', 'trailer', 'box', 'route', 'gas-pump', 'wrench', 'file-contract'];
+    function getHashIcon(str) {
+        let hash = 0; for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+        return iconMap[Math.abs(hash) % iconMap.length];
+    }
+
+    function renderSidebar() {
         const nav = document.getElementById('sidebarNav');
         nav.innerHTML = '';
-        const tables = Object.keys(activeDatabaseStructure);
         
+        if(!currentProfile) return;
+
+        // Dashboard Link
+        const dashLi = document.createElement('li');
+        dashLi.className = 'nav-item mb-1';
+        dashLi.innerHTML = `<a class="nav-link ${activeTable === 'dashboard' ? 'active' : ''}" onclick="selectTable('dashboard')"><i class="fa-solid fa-chart-pie me-2"></i> Dashboard</a>`;
+        nav.appendChild(dashLi);
+
+        const tables = Object.keys(activeDatabaseStructure);
+        tables.forEach(tableName => {
+            const li = document.createElement('li');
+            li.className = 'nav-item mb-1';
+            const isActive = activeTable === tableName;
+            li.innerHTML = `
+                <a class="nav-link ${isActive ? 'active' : ''} d-flex justify-content-between align-items-center" onclick="selectTable('${tableName}')">
+                    <span><i class="fa-solid fa-${getHashIcon(tableName)} me-2"></i> ${tableName}</span>
+                    <span class="badge ${isActive ? 'bg-light text-primary' : 'bg-secondary'} rounded-pill">${activeDatabaseStructure[tableName].length}</span>
+                </a>
+            `;
+            nav.appendChild(li);
+        });
+    }
+
+    function selectTable(tableName) {
+        activeTable = tableName;
+        renderSidebar(); 
+        
+        if (tableName === 'dashboard') {
+            renderDashboard();
+        } else {
+            document.getElementById('currentTableName').textContent = tableName;
+            renderColumnPicker();
+            renderTable();
+        }
+        updateVisibilityState();
+    }
+
+    // --- Dashboard View ---
+    const colors = ['primary', 'success', 'info', 'warning', 'danger'];
+    function renderDashboard() {
+        document.getElementById('dash-title-profile').textContent = currentProfile.toUpperCase();
+        const container = document.getElementById('dashboard-cards');
+        container.innerHTML = '';
+
+        const tables = Object.keys(activeDatabaseStructure);
         if (tables.length === 0) {
-          nav.innerHTML = '<li class="text-slate-500 text-xs px-2">No tables found. Create one!</li>';
-          return;
+            container.innerHTML = `<div class="col-12"><div class="alert alert-secondary border-0"><i class="fa-solid fa-info-circle me-2"></i>Your database is empty. Use the Schema Builder in the sidebar to begin.</div></div>`;
+            return;
         }
 
-        tables.forEach(tableName => {
-          const li = document.createElement('li');
-          const isActive = activeTable === tableName;
-          li.className = `cursor-pointer px-3 py-2 rounded-lg text-sm font-medium transition-colors flex justify-between items-center ${isActive ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`;
-          li.onclick = () => selectTable(tableName);
-          li.innerHTML = `
-            <div class="flex items-center gap-2">
-              <i data-lucide="${getIconForTable(tableName)}" class="w-4 h-4"></i>
-              ${tableName}
-            </div>
-            <span class="${isActive ? 'bg-indigo-500 text-indigo-50' : 'bg-slate-800 text-slate-500'} text-xs py-0.5 px-2 rounded-full">${activeDatabaseStructure[tableName].length}</span>
-          `;
-          nav.appendChild(li);
+        tables.forEach((tableName, index) => {
+            const count = activeDatabaseStructure[tableName].length;
+            const color = colors[index % colors.length];
+            const icon = getHashIcon(tableName);
+            
+            container.innerHTML += `
+                <div class="col-md-4 col-sm-6">
+                    <div class="card bg-white shadow-sm card-counter border-${color} p-3 cursor-pointer" onclick="selectTable('${tableName}')" style="cursor: pointer;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted text-uppercase small fw-bold">${tableName}</h6>
+                                <h3 class="fw-bold mb-0 text-dark">${count}</h3>
+                                <small class="text-muted">Total Indexed Records</small>
+                            </div>
+                            <i class="fa-solid fa-${icon} fa-2x text-${color} opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            `;
         });
-        initializeIcons();
-      }
+    }
 
-      function getIconForTable(name) {
-        const n = name.toLowerCase();
-        if(n.includes('truck') || n.includes('vehicle')) return 'truck';
-        if(n.includes('driver') || n.includes('user')) return 'users';
-        if(n.includes('assign')) return 'clipboard-list';
-        if(n.includes('trailer')) return 'layout-template';
-        return 'table-2';
-      }
-
-      function selectTable(tableName) {
-        activeTable = tableName;
-        document.getElementById('currentTableName').textContent = tableName;
-        renderSidebar(); 
-        renderColumnPicker();
-        renderTable();
-      }
-
-      function renderColumnPicker() {
+    // --- Table View & Columns ---
+    function renderColumnPicker() {
         const container = document.getElementById('columnToggleContainer');
         container.innerHTML = '';
-        if(!activeTable || !activeDatabaseStructure[activeTable] || activeDatabaseStructure[activeTable].length === 0) {
-          container.innerHTML = '<p class="text-xs text-slate-400 px-2 py-1">No columns</p>';
-          return;
+        if(!activeDatabaseStructure[activeTable] || activeDatabaseStructure[activeTable].length === 0) {
+            container.innerHTML = '<li><span class="dropdown-item-text text-muted small">No columns</span></li>';
+            return;
         }
 
         const headers = Object.keys(activeDatabaseStructure[activeTable][0]);
         if(!hiddenColumns[activeTable]) hiddenColumns[activeTable] = [];
 
         headers.forEach(header => {
-          const isHidden = hiddenColumns[activeTable].includes(header);
-          container.innerHTML += `
-            <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-800 rounded cursor-pointer text-sm text-slate-300">
-              <input type="checkbox" onchange="toggleColumn('${header}')" ${!isHidden ? 'checked' : ''} class="rounded border-slate-700 bg-slate-900 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900">
-              ${header}
-            </label>
-          `;
+            const isHidden = hiddenColumns[activeTable].includes(header);
+            container.innerHTML += `
+                <li>
+                    <label class="dropdown-item d-flex align-items-center gap-2 cursor-pointer">
+                        <input class="form-check-input mt-0" type="checkbox" onchange="toggleColumn('${header}')" ${!isHidden ? 'checked' : ''}>
+                        ${header}
+                    </label>
+                </li>
+            `;
         });
-      }
+    }
 
-      function toggleColumn(header) {
+    function toggleColumn(header) {
         if(!hiddenColumns[activeTable]) hiddenColumns[activeTable] = [];
         const index = hiddenColumns[activeTable].indexOf(header);
         if (index > -1) hiddenColumns[activeTable].splice(index, 1); 
         else hiddenColumns[activeTable].push(header); 
         renderTable();
-      }
+    }
 
-      function renderTable() {
-        const container = document.getElementById('tableContainer');
-        const deleteBtn = document.getElementById('deleteTableBtn');
+    function renderTable() {
+        const thead = document.getElementById('dynamic-table-head');
+        const tbody = document.getElementById('dynamic-table-body');
         const query = document.getElementById('searchInput').value.toLowerCase();
         
-        if (!activeTable) { 
-          container.classList.add('hidden'); 
-          deleteBtn.classList.add('hidden');
-          document.getElementById('recordCount').textContent = ""; 
-          return; 
-        }
-        
-        deleteBtn.classList.remove('hidden');
         const tableRows = activeDatabaseStructure[activeTable] || [];
-        container.classList.remove('hidden');
 
         if(tableRows.length === 0) {
-          container.innerHTML = `<div class="p-8 text-center text-slate-400 text-sm">No data in ${activeTable}</div>`;
-          document.getElementById('recordCount').textContent = "0 Records";
-          return;
+            thead.innerHTML = '';
+            tbody.innerHTML = `<tr><td class="text-center text-muted py-5"><i class="fa-solid fa-folder-open fa-2x mb-3 d-block"></i>No data entries found in ${activeTable}.</td></tr>`;
+            document.getElementById('recordCount').textContent = "0 Records";
+            return;
         }
 
         const allHeaders = Object.keys(tableRows[0]);
         const visibleHeaders = allHeaders.filter(h => !(hiddenColumns[activeTable] || []).includes(h));
 
         const filteredRows = tableRows.map((row, idx) => ({ row, idx })).filter(({ row }) => {
-          if (!query) return true;
-          return visibleHeaders.some(h => String(row[h] || '').toLowerCase().includes(query));
+            if (!query) return true;
+            return visibleHeaders.some(h => String(row[h] || '').toLowerCase().includes(query));
         });
 
         document.getElementById('recordCount').textContent = `${filteredRows.length} Records`;
 
-        let tableHtml = `
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm text-slate-300 whitespace-nowrap">
-              <thead class="bg-slate-900/40 border-b border-slate-800 text-xs uppercase text-slate-400">
-                <tr>
-                  ${visibleHeaders.map(h => `<th class="px-6 py-4 font-semibold">${h}</th>`).join('')}
-                  <th class="px-6 py-4 text-right font-semibold">Actions</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-800/60">
-        `;
+        // Render Headers
+        thead.innerHTML = `<tr>${visibleHeaders.map(h => `<th>${h}</th>`).join('')}<th class="text-end">Actions</th></tr>`;
 
+        // Render Rows
+        tbody.innerHTML = '';
         filteredRows.forEach(({ row, idx }) => {
-          tableHtml += `<tr class="hover:bg-slate-900/30 transition-colors">`;
-          visibleHeaders.forEach(header => {
-            const value = row[header] !== undefined && row[header] !== null ? row[header] : '';
-            tableHtml += `
-              <td class="px-6 py-2.5">
-                <input type="text" value="${escapeHtml(String(value))}" 
-                  onchange="updateCellInline('${activeTable}', ${idx}, '${header}', this.value)"
-                  class="bg-transparent border-b border-transparent hover:border-slate-700 focus:border-indigo-500 focus:bg-slate-900 px-2 py-1 rounded outline-none w-full transition-all text-slate-200 focus:text-white" />
-              </td>`;
-          });
-          tableHtml += `
-            <td class="px-6 py-2.5 text-right">
-              <button onclick="deleteRowContext('${activeTable}', ${idx})" class="text-slate-500 hover:text-rose-400 p-1.5 rounded bg-slate-800/50 hover:bg-slate-800 transition-colors inline-flex items-center">
-                <i data-lucide="trash-2" class="w-4 h-4"></i>
-              </button>
-            </td>
-          </tr>`;
+            const tr = document.createElement('tr');
+            let html = '';
+            visibleHeaders.forEach(header => {
+                const value = row[header] !== undefined && row[header] !== null ? row[header] : '';
+                html += `
+                    <td>
+                        <input type="text" value="${escapeHtml(String(value))}" 
+                            onchange="updateCellInline('${activeTable}', ${idx}, '${header}', this.value)"
+                            class="inline-input" />
+                    </td>`;
+            });
+            html += `
+                <td class="text-end">
+                    <button onclick="deleteRowContext('${activeTable}', ${idx})" class="btn btn-sm btn-outline-danger border-0"><i class="fa-solid fa-trash"></i></button>
+                </td>
+            `;
+            tr.innerHTML = html;
+            tbody.appendChild(tr);
         });
+    }
 
-        tableHtml += `</tbody></table></div>`;
-        container.innerHTML = tableHtml;
-        initializeIcons();
-      }
-
-      async function updateCellInline(table, index, field, value) {
+    // --- API Interactions ---
+    async function updateCellInline(table, index, field, value) {
         await fetch('/api/update-cell', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ profile: currentProfile, table, index, field, value })
-        });
-        activeDatabaseStructure[table][index][field] = value; 
-      }
-
-      async function deleteRowContext(table, index) {
-        if(!confirm(`Delete record from ${table}?`)) return;
-        const res = await fetch('/api/delete-row', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ profile: currentProfile, table, index })
-        });
-        if(res.ok) {
-          activeDatabaseStructure[table].splice(index, 1);
-          renderSidebar();
-          renderTable();
-        }
-      }
-
-      // NEW: DELETE ENTIRE TABLE
-      async function deleteActiveTable() {
-        if (!activeTable) return;
-        if (!confirm(`WARNING: Are you absolutely sure you want to permanently delete the entire "${activeTable}" table and all its data?`)) return;
-
-        // Remove from our local tracker
-        delete activeDatabaseStructure[activeTable];
-
-        // Send the updated tracker back to MongoDB, effectively erasing the table
-        try {
-          const res = await fetch('/api/upload-db', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ profile: currentProfile, dbData: activeDatabaseStructure })
-          });
+            body: JSON.stringify({ profile: currentProfile, table, index, field, value })
+        });
+        activeDatabaseStructure[table][index][field] = value; 
+    }
 
-          if (res.ok) {
-            // Pick a new table to view if available, otherwise clear the screen
-            const remainingTables = Object.keys(activeDatabaseStructure);
-            if (remainingTables.length > 0) {
-              selectTable(remainingTables[0]);
-            } else {
-              activeTable = null;
-              document.getElementById('currentTableName').textContent = "No Table Selected";
-              renderSidebar();
-              renderTable();
+    async function deleteRowContext(table, index) {
+        if(!confirm(`Delete record from ${table}?`)) return;
+        const res = await fetch('/api/delete-row', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ profile: currentProfile, table, index })
+        });
+        if(res.ok) {
+            activeDatabaseStructure[table].splice(index, 1);
+            renderSidebar();
+            renderTable();
+        }
+    }
+
+    async function deleteActiveTable() {
+        if (!activeTable || activeTable === 'dashboard') return;
+        if (!confirm(`WARNING: Are you absolutely sure you want to permanently delete "${activeTable}" and all its data?`)) return;
+
+        delete activeDatabaseStructure[activeTable];
+        try {
+            const res = await fetch('/api/upload-db', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ profile: currentProfile, dbData: activeDatabaseStructure })
+            });
+
+            if (res.ok) {
+                selectTable('dashboard');
             }
-          }
-        } catch (e) { alert("Failed to delete table from the database."); }
-      }
+        } catch (e) { alert("Failed to delete table."); }
+    }
 
-      // ADD RECORD LOGIC
-      function openAddRecordModal() {
-        if(!activeTable) return alert("Select a table from the sidebar first.");
-        document.getElementById('modalTitle').textContent = `Add to ${activeTable}`;
+    // --- Modals Logic ---
+    function openAddRecordModal() {
+        if(!activeTable || activeTable === 'dashboard') return alert("Select a specific table from the sidebar first.");
+        document.getElementById('modalTitle').innerHTML = `<i class="fa-solid fa-plus-circle me-2"></i>Add to ${activeTable}`;
         
         const formContainer = document.getElementById('dynamicFormFields');
         formContainer.innerHTML = '';
         
         const headers = Object.keys(activeDatabaseStructure[activeTable][0] || {});
         headers.forEach(header => {
-          formContainer.innerHTML += `
-            <div>
-              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">${header}</label>
-              <input type="text" id="addInput_${header}" placeholder="Enter ${header}" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none focus:border-indigo-500">
-            </div>
-          `;
+            formContainer.innerHTML += `
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-muted small text-uppercase">${header}</label>
+                    <input type="text" id="addInput_${header}" class="form-control bg-light" required>
+                </div>
+            `;
         });
         
-        openModal('addRecordModal');
-      }
+        addModalInstance.show();
+    }
 
-      async function submitNewRecord(e) {
+    async function submitNewRecord(e) {
         e.preventDefault();
         const headers = Object.keys(activeDatabaseStructure[activeTable][0] || {});
         const rowData = {};
         
         headers.forEach(header => {
-          rowData[header] = document.getElementById(`addInput_${header}`).value;
+            rowData[header] = document.getElementById(`addInput_${header}`).value;
         });
 
         const res = await fetch('/api/add-row', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ profile: currentProfile, table: activeTable, rowData })
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ profile: currentProfile, table: activeTable, rowData })
         });
 
         if(res.ok) {
-          if(!activeDatabaseStructure[activeTable]) activeDatabaseStructure[activeTable] = [];
-          activeDatabaseStructure[activeTable].unshift(rowData);
-          closeModal('addRecordModal');
-          renderSidebar();
-          renderTable();
+            if(!activeDatabaseStructure[activeTable]) activeDatabaseStructure[activeTable] = [];
+            activeDatabaseStructure[activeTable].unshift(rowData);
+            addModalInstance.hide();
+            renderSidebar();
+            renderTable();
         }
-      }
+    }
 
-      // CUSTOM SCHEMA BUILDER LOGIC
-      function openTableBuilderModal() {
+    function openTableBuilderModal() {
         const area = document.getElementById('builderColumnArea');
         area.innerHTML = '';
         const tables = Object.keys(activeDatabaseStructure);
 
         if (tables.length === 0) {
-          area.innerHTML = '<p class="text-sm text-slate-400 italic">No existing tables to draw columns from. Add data first.</p>';
+            area.innerHTML = '<div class="col-12"><div class="alert alert-warning">No existing tables to draw columns from. Import data or create a starter table first.</div></div>';
         } else {
-          tables.forEach(tableName => {
-            const headers = Object.keys(activeDatabaseStructure[tableName][0] || {});
-            if (headers.length > 0) {
-              let html = `
-                <div class="mb-4">
-                  <h4 class="text-sm font-semibold text-slate-300 mb-2 border-b border-slate-800 pb-1 flex items-center gap-2">
-                    <i data-lucide="${getIconForTable(tableName)}" class="w-4 h-4 text-slate-500"></i> ${tableName}
-                  </h4>
-                  <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              `;
-              headers.forEach(header => {
-                html += `
-                  <label class="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-200 cursor-pointer p-1.5 hover:bg-slate-900 rounded transition-colors">
-                    <input type="checkbox" value="${header}" class="builder-col-checkbox rounded border-slate-700 bg-slate-950 text-indigo-500 focus:ring-indigo-500">
-                    <span class="truncate">${header}</span>
-                  </label>
-                `;
-              });
-              html += `</div></div>`;
-              area.innerHTML += html;
-            }
-          });
+            tables.forEach(tableName => {
+                const headers = Object.keys(activeDatabaseStructure[tableName][0] || {});
+                if (headers.length > 0) {
+                    let html = `
+                        <div class="col-md-6">
+                            <div class="card shadow-sm h-100">
+                                <div class="card-header bg-light py-2 fw-bold text-dark"><i class="fa-solid fa-${getHashIcon(tableName)} me-2 text-primary"></i>${tableName}</div>
+                                <div class="card-body p-2">
+                                    <div class="row g-2">
+                    `;
+                    headers.forEach(header => {
+                        html += `
+                            <div class="col-6">
+                                <div class="form-check">
+                                    <input class="form-check-input builder-col-checkbox" type="checkbox" value="${header}" id="cb_${tableName}_${header}">
+                                    <label class="form-check-label small text-truncate d-block" for="cb_${tableName}_${header}" title="${header}">${header}</label>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += `</div></div></div></div>`;
+                    area.innerHTML += html;
+                }
+            });
         }
-        initializeIcons();
-        openModal('tableBuilderModal');
-      }
+        builderModalInstance.show();
+    }
 
-      async function submitNewTableSchema() {
+    async function submitNewTableSchema() {
         const name = document.getElementById('newSchemaName').value.trim();
         if (!name) return alert("Please enter a name for the new table.");
 
@@ -505,30 +561,22 @@
         uniqueCols.forEach(col => dummyRow[col] = "—"); 
 
         const res = await fetch('/api/add-row', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ profile: currentProfile, table: name, rowData: dummyRow })
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ profile: currentProfile, table: name, rowData: dummyRow })
         });
 
         if(res.ok) {
-          if(!activeDatabaseStructure[name]) activeDatabaseStructure[name] = [];
-          activeDatabaseStructure[name].unshift(dummyRow);
-          
-          document.getElementById('newSchemaName').value = '';
-          closeModal('tableBuilderModal');
-          selectTable(name); 
+            if(!activeDatabaseStructure[name]) activeDatabaseStructure[name] = [];
+            activeDatabaseStructure[name].unshift(dummyRow);
+            
+            document.getElementById('newSchemaName').value = '';
+            builderModalInstance.hide();
+            selectTable(name); 
         }
-      }
+    }
 
-      function openModal(id) { 
-        document.getElementById(id).classList.remove('hidden'); 
-        document.getElementById(id).classList.add('flex'); 
-      }
-      function closeModal(id) { 
-        document.getElementById(id).classList.remove('flex'); 
-        document.getElementById(id).classList.add('hidden'); 
-      }
-      function escapeHtml(str) { return typeof str !== 'string' ? str : str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
-    </script>
-  </body>
+    function escapeHtml(str) { return typeof str !== 'string' ? str : str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+</script>
+</body>
 </html>
